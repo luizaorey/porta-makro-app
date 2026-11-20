@@ -7,6 +7,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
+export const VERSAO_APP = 'v6';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -40,7 +41,7 @@ function abrirApp() {
   $('login').hidden = true; $('app').hidden = false;
   const sim = backend.modo === 'simulacao';
   $('faixaSim').hidden = !sim; $('blocoSim').hidden = !sim;
-  $('menuUsuario').textContent = sim ? 'Modo simulação.' : `Conectado como ${backend.usuario().nome}.`;
+  $('menuUsuario').textContent = (sim ? 'Modo simulação.' : `Conectado como ${backend.usuario().nome}.`) + ` Versão do app: ${VERSAO_APP}.`;
   $('btnTrocarModo').textContent = sim ? (nuvemConfigurada ? 'Usar a porta real' : '') : 'Ir para simulação';
   $('btnTrocarModo').hidden = sim && !nuvemConfigurada;
   $('btnSair').hidden = sim;
@@ -299,7 +300,7 @@ function renderAgenda(t) {
     }
     ul.append(li);
   }
-  $('agNova').hidden = !adm; $('agSomenteLeitura').hidden = adm;
+  $('agNova').hidden = !adm || !$('formRegra').hidden; $('agSomenteLeitura').hidden = adm;
 }
 async function agAcao(fn) {
   try { await fn(); agKey = ''; await poll(); }
@@ -313,34 +314,45 @@ function textoErroAgenda(m) {
   return { sem_permissao: 'só administradores editam a agenda.', hora_invalida: 'horário inválido.', dias_invalidos: 'escolha pelo menos um dia.' }[m] || m;
 }
 
-// diálogo de regra
+// formulário de regra (painel dentro da tela, sem janela flutuante)
 let editando = null;
 const chips = $('chipsDias');
 CURTO_DIA.forEach((nome, i) => {
   if (!i) return;
-  const lab = document.createElement('label'); const inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = i;
-  const sp = document.createElement('span'); sp.textContent = nome; lab.append(inp, sp); chips.append(lab);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = nome; b.dataset.dia = i; b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+  chips.append(b);
 });
-const marcarDias = lista => chips.querySelectorAll('input').forEach(i => { i.checked = lista.includes(+i.value); });
+const marcarDias = lista => chips.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(lista.includes(+b.dataset.dia))));
+const diasMarcados = () => [...chips.querySelectorAll('.chip[aria-pressed=true]')].map(b => +b.dataset.dia);
+const acaoMarcada = () => document.querySelector('#segAcao .seg-btn[aria-pressed=true]').dataset.acao;
+const marcarAcao = a => document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.acao === a)));
+document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.onclick = () => marcarAcao(b.dataset.acao));
 document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => marcarDias({ util: [1, 2, 3, 4, 5], todos: [1, 2, 3, 4, 5, 6, 7], fim: [6, 7] }[b.dataset.preset]));
 function abrirRegra(r) {
   editando = r || null; $('regraErro').textContent = '';
+  $('painelFechar').hidden = true;
   $('dlgRegraTitulo').textContent = r ? 'Editar regra' : 'Nova regra';
   marcarDias(r ? r.dias : [1, 2, 3, 4, 5]);
   $('regraHora').value = r ? r.hora : '08:00';
-  document.querySelector(`input[name=regraAcao][value=${r ? r.acao : 'abrir'}]`).checked = true;
-  $('dlgRegra').showModal();
+  marcarAcao(r ? r.acao : 'abrir');
+  $('formRegra').hidden = false; $('agNova').hidden = true;
+  $('formRegra').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
+function fecharRegra() { $('formRegra').hidden = true; $('agNova').hidden = !ehAdmin(); }
 $('agNova').onclick = () => abrirRegra(null);
-$('regraCancelar').onclick = () => $('dlgRegra').close();
+$('regraCancelar').onclick = fecharRegra;
 $('formRegra').addEventListener('submit', async ev => {
   ev.preventDefault();
-  const dias = [...chips.querySelectorAll('input:checked')].map(i => +i.value);
+  const dias = diasMarcados();
   if (!dias.length) { $('regraErro').textContent = 'Escolha pelo menos um dia.'; return; }
+  if (!$('regraHora').value) { $('regraErro').textContent = 'Escolha o horário.'; return; }
+  $('regraSalvar').disabled = true;
   try {
-    await backend.agendaSalvar({ id: editando?.id, acao: document.querySelector('input[name=regraAcao]:checked').value, dias, hora: $('regraHora').value, ativa: editando ? editando.ativa : true });
-    $('dlgRegra').close(); agKey = ''; poll();
+    await backend.agendaSalvar({ id: editando?.id, acao: acaoMarcada(), dias, hora: $('regraHora').value, ativa: editando ? editando.ativa : true });
+    fecharRegra(); agKey = ''; poll();
   } catch (e) { $('regraErro').textContent = textoErroAgenda(e.message).replace(/^./, c => c.toUpperCase()); }
+  $('regraSalvar').disabled = false;
 });
 
 // travas
@@ -349,12 +361,13 @@ $('agFechar').onchange = e => {
   if (!e.target.checked) { agAcao(() => backend.agendaConfig({ fecharLiberado: false })); return; }
   e.target.checked = false;                       // só marca depois da confirmação
   $('chkObstaculo').checked = $('chkParada').checked = false; $('fecharConfirmar').disabled = true;
-  $('dlgFechar').showModal();
+  $('formRegra').hidden = true; $('painelFechar').hidden = false;
+  $('painelFechar').scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 const confere = () => { $('fecharConfirmar').disabled = !($('chkObstaculo').checked && $('chkParada').checked); };
 $('chkObstaculo').onchange = $('chkParada').onchange = confere;
-$('fecharCancelar').onclick = () => $('dlgFechar').close();
-$('fecharConfirmar').onclick = () => { $('dlgFechar').close(); agAcao(() => backend.agendaConfig({ fecharLiberado: true })); };
+$('fecharCancelar').onclick = () => { $('painelFechar').hidden = true; };
+$('fecharConfirmar').onclick = () => { $('painelFechar').hidden = true; agAcao(() => backend.agendaConfig({ fecharLiberado: true })); };
 
 // ---------- login / menu ----------
 $('formLogin').addEventListener('submit', async ev => {
@@ -379,5 +392,9 @@ $('btnTrocarModo').addEventListener('click', () => {
   salvar('modo', backend.modo === 'simulacao' ? 'real' : 'sim'); location.search = ''; location.reload();
 });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {});
+  let recarregou = false;   // quando uma versão nova do app assume, recarrega uma vez para não ficar misturando arquivos velhos e novos
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (recarregou || !navigator.serviceWorker.controller) return; recarregou = true; location.reload(); });
+}
 iniciar();

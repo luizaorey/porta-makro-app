@@ -127,21 +127,17 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .ag-lista .troca { grid-column: 2; grid-row: 1; }
 .agenda .dica { margin-top: 10px; }
 
-/* diálogo de regra */
-fieldset { border: 0; padding: 0; margin: 12px 0; }
-legend { font-size: .88rem; color: var(--txt-2); padding: 0; margin-bottom: 6px; }
-.chips { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.chips label { margin: 0; }
-.chips input { position: absolute; opacity: 0; pointer-events: none; }
-.chips span { display: grid; place-items: center; height: 44px; border-radius: 12px; border: 1px solid var(--borda); background: var(--bg); color: var(--txt); font-size: .8rem; font-weight: 600; }
-.chips input:checked + span { background: var(--abrir); border-color: var(--abrir); color: #fff; }
-.chips input:focus-visible + span { outline: 2px solid var(--ouro); }
-input[type=time] { display: block; width: 100%; margin-top: 4px; padding: 12px; font-size: 1.2rem; border-radius: 12px; border: 1px solid var(--borda); background: var(--bg); color: var(--txt); }
+/* formulário de regra (painel dentro da tela) */
+.painel-regra { background: var(--bg); border: 1px solid var(--fio); border-radius: 16px; padding: 14px; margin: 0 0 14px; }
+.painel-regra[hidden] { display: none; }
+.painel-regra h3 { margin: 0 0 6px; font-family: 'Playfair Display', serif; font-size: 1.3rem; }
+.rotulo-campo { margin: 14px 0 6px; font-size: .85rem; font-weight: 600; color: var(--txt-2); }
+.chips { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.chip { height: 46px; padding: 0; border-radius: 12px; border: 1px solid var(--borda); background: var(--card-2); color: var(--txt); font-size: .78rem; font-weight: 600; -webkit-appearance: none; appearance: none; }
+.chip[aria-pressed=true] { background: var(--abrir); border-color: var(--abrir); color: #fff; }
+#regraHora { display: block; width: 100%; padding: 12px; font-size: 1.3rem; border-radius: 12px; border: 1px solid var(--borda); background: var(--card-2); color: var(--txt); min-height: 52px; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.seg label { margin: 0; position: relative; }
-.seg input { position: absolute; opacity: 0; }
-.seg span { display: grid; place-items: center; height: 48px; border-radius: 12px; border: 1px solid var(--borda); background: var(--bg); color: var(--txt); font-weight: 600; }
-.seg input:checked + span { color: #fff; border-color: transparent; }
-.seg label:nth-child(1) input:checked + span { background: var(--abrir); }
-.seg label:nth-child(2) input:checked + span { background: var(--fechar); }
+.seg-btn { height: 54px; border-radius: 12px; border: 1px solid var(--borda); background: var(--card-2); color: var(--txt); font-size: 1.05rem; font-weight: 600; -webkit-appearance: none; appearance: none; }
+.seg-btn[aria-pressed=true].abrir { background: var(--abrir); border-color: transparent; color: #fff; }
+.seg-btn[aria-pressed=true].fechar { background: var(--fechar); border-color: transparent; color: #fff; }
 .historico .alerta-ag .o-que { color: var(--erro); }
