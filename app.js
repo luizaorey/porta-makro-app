@@ -33,11 +33,11 @@ async function iniciar() {
     mostrarLogin(); $('erroLogin').textContent = 'Não foi possível falar com a nuvem. ' + e.message;
   }
 }
-function mostrarLogin() { $('login').hidden = false; $('app').hidden = true; $('barra-cmd').hidden = true; }
+function mostrarLogin() { $('login').hidden = false; $('app').hidden = true; }
 function entrarSimulacao() { backend = criarSimulacao(); salvar('modo', 'sim'); abrirApp(); }
 
 function abrirApp() {
-  $('login').hidden = true; $('app').hidden = false; $('barra-cmd').hidden = false;
+  $('login').hidden = true; $('app').hidden = false;
   const sim = backend.modo === 'simulacao';
   $('faixaSim').hidden = !sim; $('blocoSim').hidden = !sim;
   $('menuUsuario').textContent = sim ? 'Modo simulação.' : `Conectado como ${backend.usuario().nome}.`;
@@ -68,7 +68,7 @@ async function poll() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden) poll(); });
 
 // ---------- comandos ----------
-document.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => enviar(b.dataset.cmd)));
+document.querySelectorAll('button[data-cmd]').forEach(b => b.addEventListener('click', () => enviar(b.dataset.cmd)));
 async function enviar(acao) {
   if (navigator.vibrate) navigator.vibrate(30);
   retorno('Enviando comando…');
@@ -91,9 +91,9 @@ function conferirComando() {
 function retorno(texto, erro = false, duracao = 0) { msgRetorno = { texto, erro, ate: duracao ? Date.now() + duracao : 0 }; render(); }
 
 // ---------- desenho ----------
-const ALTURA_VAO = 190, TOPO_VAO = 40;
+const ALTURA_VAO = 146, TOPO_VAO = 74;
 function desenharPorta(pct, naoConfirmado) {
-  const p = pct == null ? 50 : pct;
+  const p = pct == null ? 0 : pct;   // desconhecida: lâmina esmaecida, com "?"
   const h = Math.max(0, (1 - p / 100) * ALTURA_VAO);
   $('lamina').setAttribute('height', h);
   $('barra').setAttribute('y', TOPO_VAO + h - 8);
@@ -108,52 +108,49 @@ function render() {
   const cfg = { ...CFG_PADRAO, ...snap.cfg };
   const t = agora();
   const v = derivar(snap.est, cfg, t);
-  const sem = v.comunicacao === 'sem_comunicacao';
+  const sem = v.comunicacao === 'sem_comunicacao' || falhaRede;
+  const u = snap.est.ultimo;
 
   // porta
   let pct = v.pct, naoConf = v.estimado || !!v.aviso;
-  if (sem) {
-    const u = snap.est.ultimo;
-    pct = u ? (u.pos === 'aberta' ? 100 : 0) : null; naoConf = true;
-  }
+  if (v.comunicacao === 'sem_comunicacao') { pct = null; naoConf = true; }   // sem sinal: posição desconhecida, "?"
   desenharPorta(pct, naoConf);
-  if (sem) $('pctTxt').textContent = 'Posição atual desconhecida';
+  if (v.comunicacao === 'sem_comunicacao') $('pctTxt').textContent = '';
   else if (v.posicao === 'falha') $('pctTxt').textContent = 'Leitura inválida';
   else if (pct == null) $('pctTxt').textContent = 'Posição desconhecida (sem percentual)';
   else if (v.estimado) $('pctTxt').textContent = `≈ ${Math.round(pct)}% aberta — estimado, não confirmado`;
   else $('pctTxt').textContent = `${Math.round(pct)}% aberta — confirmado pelo sensor`;
 
   // estado
-  const rot = sem ? 'Sem comunicação' : v.rotulo;
-  const cls = sem ? 'erro' : v.posicao === 'falha' ? 'erro' : v.posicao === 'entre' ? 'alerta' : 'ok';
-  $('rotulo').textContent = rot; $('rotulo').className = 'rotulo ' + cls;
+  const semSinal = v.comunicacao === 'sem_comunicacao';
+  $('rotulo').textContent = semSinal ? 'Posição desconhecida' : v.rotulo;
+  $('rotulo').className = 'rotulo ' + (v.posicao === 'falha' && !semSinal ? 'erro' : v.posicao === 'entre' && !semSinal ? 'alerta' : 'ok');
   let sub = '';
-  if (sem) {
-    sub = 'Posição atual desconhecida.';
-    const u = snap.est.ultimo;
-    if (u) sub += ` Última posição conhecida: ${u.pos === 'aberta' ? 'porta aberta' : 'porta fechada'} às ${horaCurta(u.em)}.`;
-  } else if (v.movimento) sub = (v.movimento === 'abrindo' ? 'Abrindo' : 'Fechando') + ' — movimento estimado';
+  if (semSinal) sub = u ? `Última confirmação · ${u.pos === 'aberta' ? 'Aberta' : 'Fechada'} às ${horaCurta(u.em)}` : 'Sem confirmação anterior';
+  else if (v.movimento) sub = (v.movimento === 'abrindo' ? 'Abrindo' : 'Fechando') + ' — movimento estimado';
   else if (v.posicao === 'entre' && v.estimado) sub = 'Parada — posição estimada, sem confirmação do sensor';
-  else if (v.posicao === 'entre') sub = 'Movimento externo ou desconhecido: sem percentual.';
-  else if (v.posicao === 'falha') sub = 'Os dois fins de curso estão ativos ao mesmo tempo.';
+  else if (v.posicao === 'entre') sub = 'Movimento externo ou desconhecido';
+  else if (v.posicao === 'falha') sub = 'Os dois fins de curso estão ativos ao mesmo tempo';
   else sub = 'Confirmado pelo sensor';
   $('sub').textContent = sub;
-  $('aviso').hidden = !v.aviso; $('aviso').textContent = v.aviso || '';
+  $('aviso').hidden = !v.aviso || semSinal; $('aviso').textContent = v.aviso || '';
+
+  // conexão + comandos
+  $('ponto').className = 'ponto ' + (sem ? 'off' : 'on');
+  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : semSinal ? 'Sem comunicação' : 'Conectado ao ESP32';
+  $('atualizadoTxt').textContent = snap.est.visto ? 'Última atualização ' + horaComSegundos(snap.est.visto) : 'Sem atualização ainda';
+  document.querySelectorAll('button[data-cmd]').forEach(b => { b.disabled = sem; });
 
   if (msgRetorno.ate && Date.now() > msgRetorno.ate) msgRetorno = { texto: '', erro: false, ate: 0 };
-  $('retorno').textContent = msgRetorno.texto; $('retorno').className = 'retorno' + (msgRetorno.erro ? ' erro' : '');
+  const nota = $('nota');
+  if (msgRetorno.texto) { nota.textContent = msgRetorno.texto; nota.className = 'nota' + (msgRetorno.erro ? ' erro' : ''); }
+  else { nota.textContent = sem ? 'Comandos disponíveis ao reconectar.' : ''; nota.className = 'nota'; }
 
-  // conexão
-  $('ponto').className = 'ponto ' + (sem || falhaRede ? 'off' : 'on');
-  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : sem ? 'Sem comunicação com o ESP32' : 'Conectado ao ESP32';
-  $('atualizadoTxt').textContent = snap.est.visto ? 'Última atualização ' + horaComSegundos(snap.est.visto) : 'Sem atualização ainda';
-
-  // histórico (só redesenha se mudou)
+  // atividade (só redesenha se mudou)
   const key = snap.eventos.map(e => e.id).join(',');
   if (key !== ultimaKey) { ultimaKey = key; desenharHistorico(snap.eventos); }
 
-  // animação suave só enquanto há movimento
-  agendarQuadro(!!v.movimento);
+  agendarQuadro(!!v.movimento);   // animação suave só enquanto há movimento
 }
 function horaComSegundos(ms) {
   return new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Bahia' }).format(new Date(ms));
@@ -168,18 +165,20 @@ setInterval(() => { if (snap && !document.hidden) render(); }, 1000);
 function desenharHistorico(evs) {
   const ul = $('historico'); ul.textContent = '';
   if (!evs.length) { const li = document.createElement('li'); li.className = 'vazio'; li.textContent = 'Sem eventos ainda.'; ul.append(li); return; }
-  for (const e of evs) {
+  for (const e of evs.slice(0, 20)) {
     const li = document.createElement('li');
-    const a = document.createElement('div'); const q = document.createElement('div'); q.className = 'quem'; const w = document.createElement('div'); w.className = 'quando';
-    if (e.tipo === 'chegada_aberta' || e.tipo === 'chegada_fechada') {
-      a.className = 'chegada';
-      a.textContent = e.tipo === 'chegada_aberta' ? `Porta aberta completamente às ${horaCurta(e.em)}` : `Porta fechada completamente às ${horaCurta(e.em)}`;
-      q.textContent = e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo';
-    } else if (e.tipo === 'comando') {
-      a.textContent = e.msg; q.textContent = `Enviado por ${e.usuario}`;
-    } else { a.textContent = e.msg || e.tipo; q.textContent = ''; }
-    w.textContent = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bahia' }).format(new Date(e.em));
-    li.append(a, w, q); ul.append(li);
+    const w = document.createElement('div'); w.className = 'quando';
+    const a = document.createElement('div'); a.className = 'o-que';
+    const q = document.createElement('div'); q.className = 'quem';
+    if (e.tipo === 'chegada_aberta') { a.textContent = 'Abertura confirmada'; q.textContent = e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo'; }
+    else if (e.tipo === 'chegada_fechada') { a.textContent = 'Fechamento confirmado'; q.textContent = e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo'; }
+    else if (e.tipo === 'comando') { a.textContent = e.msg; q.textContent = `Enviado por ${e.usuario}`; }
+    else { a.textContent = e.msg || e.tipo; }
+    const dia = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Bahia' }).format(new Date(e.em));
+    const hoje = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Bahia' }).format(new Date());
+    w.textContent = horaCurta(e.em) + (dia === hoje ? '' : ' · ' + dia);
+    li.append(w, a); if (q.textContent) li.append(q);
+    ul.append(li);
   }
 }
 

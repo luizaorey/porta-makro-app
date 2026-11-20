@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Porta Makro</title>
 <meta name="description" content="Controle da porta de enrolar da Makro Boutique">
-<meta name="theme-color" content="#14181c">
+<meta name="theme-color" content="#faf5ee">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -13,6 +13,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Porta Makro">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -32,57 +35,88 @@
 <main id="app" hidden>
   <div id="faixaSim" class="faixa-sim" hidden>MODO SIMULAÇÃO — nada está ligado à porta real</div>
 
-  <header>
-    <h1>Porta da Makro Boutique</h1>
-    <button id="btnMenu" class="icone" aria-label="Ajustes">⚙</button>
+  <header class="marca">
+    <div class="marca-centro">
+      <div class="marca-nome">MAKRO</div>
+      <div class="marca-sub"><span></span>BOUTIQUE<span></span></div>
+    </div>
+    <button id="btnMenu" class="icone" aria-label="Ajustes">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
   </header>
+  <h1 class="titulo">Porta da loja</h1>
 
-  <section class="cartao porta-cartao" aria-label="Porta">
-    <svg id="porta" viewBox="0 0 300 250" role="img" aria-label="Desenho da porta de enrolar">
+  <section class="cartao porta-cartao" aria-label="Porta da Makro Boutique">
+    <svg id="porta" viewBox="0 0 400 250" role="img" aria-label="Fachada da loja com porta de enrolar">
       <defs>
-        <clipPath id="vao"><rect x="30" y="40" width="240" height="190"/></clipPath>
-        <pattern id="ripas" width="10" height="12" patternUnits="userSpaceOnUse">
-          <rect width="10" height="12" fill="var(--lamina)"/>
-          <rect y="10" width="10" height="2" fill="var(--lamina-sombra)"/>
+        <clipPath id="vao"><rect x="112" y="74" width="176" height="146"/></clipPath>
+        <linearGradient id="toldo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--toldo-a)"/><stop offset="1" stop-color="var(--toldo-b)"/></linearGradient>
+        <pattern id="ripas" width="10" height="9" patternUnits="userSpaceOnUse">
+          <rect width="10" height="9" fill="var(--lamina)"/><rect y="7.4" width="10" height="1.6" fill="var(--lamina-sombra)"/>
         </pattern>
-        <pattern id="incerta" width="10" height="12" patternUnits="userSpaceOnUse">
-          <rect width="10" height="12" fill="var(--lamina)" opacity=".45"/>
-          <rect y="10" width="10" height="2" fill="var(--lamina-sombra)" opacity=".6"/>
+        <pattern id="incerta" width="10" height="9" patternUnits="userSpaceOnUse">
+          <rect width="10" height="9" fill="var(--lamina)" opacity=".6"/><rect y="7.4" width="10" height="1.6" fill="var(--lamina-sombra)" opacity=".7"/>
         </pattern>
       </defs>
-      <rect x="10" y="10" width="280" height="230" rx="6" class="parede"/>
-      <rect x="30" y="40" width="240" height="190" class="vao"/>
-      <g clip-path="url(#vao)">
-        <rect id="lamina" x="30" y="40" width="240" height="190" fill="url(#ripas)"/>
-        <rect id="barra" x="30" y="226" width="240" height="8" class="barra"/>
+      <!-- fachada -->
+      <rect x="0" y="0" width="400" height="250" fill="var(--fachada)"/>
+      <rect x="0" y="0" width="400" height="14" fill="var(--fachada-clara)"/>
+      <rect x="0" y="14" width="400" height="3" fill="var(--ouro)" opacity=".7"/>
+      <rect x="86" y="22" width="228" height="198" fill="var(--fachada-escura)"/>
+      <rect x="10" y="30" width="62" height="40" class="painel"/><rect x="10" y="78" width="62" height="130" class="painel"/>
+      <rect x="328" y="30" width="62" height="40" class="painel"/><rect x="328" y="78" width="62" height="130" class="painel"/>
+      <!-- vitrine -->
+      <rect x="14" y="82" width="54" height="104" fill="var(--vitrine)"/>
+      <ellipse cx="41" cy="98" rx="11" ry="4" fill="#fff" opacity=".8"/>
+      <g stroke="#6b5a45" stroke-width="1.4" fill="none" opacity=".85">
+        <path d="M24 122v38M24 122l-7 6M24 122l7 6"/><path d="M41 122v38M41 122l-7 6M41 122l7 6"/><path d="M58 122v38M58 122l-7 6M58 122l7 6"/>
       </g>
-      <rect x="22" y="14" width="256" height="30" rx="4" class="caixa"/>
-      <text x="150" y="34" text-anchor="middle" class="caixa-txt">PORTA DE ENROLAR</text>
-      <text id="interrog" x="150" y="150" text-anchor="middle" class="interrog" hidden>?</text>
+      <g opacity=".9"><rect x="19" y="128" width="10" height="30" fill="#e9dcc6"/><rect x="36" y="128" width="10" height="30" fill="#d8c3a1"/><rect x="53" y="128" width="10" height="30" fill="#efe6d6"/></g>
+      <!-- vão e lâmina -->
+      <rect x="112" y="74" width="176" height="146" class="vao"/>
+      <g clip-path="url(#vao)">
+        <rect id="lamina" x="112" y="74" width="176" height="146" fill="url(#ripas)"/>
+        <rect id="barra" x="112" y="212" width="176" height="8" class="barra"/>
+      </g>
+      <text id="interrog" x="200" y="160" text-anchor="middle" class="interrog" hidden>?</text>
+      <!-- toldo -->
+      <path d="M92 40 H308 L300 74 H100 Z" fill="url(#toldo)"/><rect x="100" y="72" width="200" height="3" fill="var(--ouro)" opacity=".6"/>
+      <!-- arandelas -->
+      <rect x="95" y="104" width="8" height="18" rx="2" fill="var(--ouro)"/><rect x="297" y="104" width="8" height="18" rx="2" fill="var(--ouro)"/>
+      <!-- vasos -->
+      <g><path d="M55 190h26l-3 30H58z" fill="#d9cdb8"/><g fill="#7d8a5d"><ellipse cx="62" cy="168" rx="5" ry="11" transform="rotate(-25 62 168)"/><ellipse cx="72" cy="160" rx="5" ry="12"/><ellipse cx="82" cy="170" rx="5" ry="11" transform="rotate(25 82 170)"/><ellipse cx="68" cy="178" rx="4" ry="9" transform="rotate(-10 68 178)"/><ellipse cx="78" cy="180" rx="4" ry="9" transform="rotate(12 78 180)"/></g></g>
+      <g><path d="M319 190h26l-3 30h-20z" fill="#d9cdb8"/><g fill="#7d8a5d"><ellipse cx="326" cy="170" rx="5" ry="11" transform="rotate(-25 326 170)"/><ellipse cx="336" cy="160" rx="5" ry="12"/><ellipse cx="346" cy="168" rx="5" ry="11" transform="rotate(25 346 168)"/><ellipse cx="331" cy="180" rx="4" ry="9" transform="rotate(-10 331 180)"/><ellipse cx="342" cy="180" rx="4" ry="9" transform="rotate(12 342 180)"/></g></g>
+      <!-- calçada -->
+      <rect x="0" y="220" width="400" height="30" fill="var(--calcada)"/>
+      <path d="M0 232H400M110 220l-18 30M200 220v30M290 220l18 30" stroke="var(--calcada-linha)" stroke-width="1" fill="none"/>
     </svg>
-    <div class="pct-linha"><span id="pctTxt">—</span></div>
-  </section>
 
-  <section class="cartao estado" aria-live="polite">
+    <div class="status-linha"><span id="ponto" class="ponto"></span><span id="conTxt">Conectando…</span></div>
     <div id="rotulo" class="rotulo">—</div>
     <div id="sub" class="sub"></div>
+    <div id="pctTxt" class="pct-linha"></div>
     <div id="aviso" class="aviso" hidden></div>
-    <div id="retorno" class="retorno"></div>
+    <div id="atualizadoTxt" class="atualizado"></div>
   </section>
 
-  <section class="cartao conexao">
-    <span id="ponto" class="ponto"></span>
-    <span id="conTxt">Conectando…</span>
-    <span id="atualizadoTxt" class="atualizado"></span>
-  </section>
+  <div class="secao"><h2>Comandos</h2><span class="fio"></span></div>
+  <div class="comandos" id="barra-cmd" role="group" aria-label="Comandos da porta">
+    <button class="cmd abrir" data-cmd="abrir"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>Abrir</span></button>
+    <button class="cmd parar" data-cmd="parar"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg><span>Parar</span></button>
+    <button class="cmd fechar" data-cmd="fechar"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg><span>Fechar</span></button>
+  </div>
+  <p id="nota" class="nota" aria-live="polite"></p>
 
-  <section class="cartao" id="blocoPush">
+  <div class="secao"><h2>Atividade recente</h2><span class="fio"></span></div>
+  <ul id="historico" class="historico"><li class="vazio">Sem eventos ainda.</li></ul>
+
+  <section class="cartao aux" id="blocoPush">
     <button id="btnPush" class="secundario">Ativar notificações</button>
     <p id="pushMsg" class="dica"></p>
   </section>
 
-  <section class="cartao" id="blocoSim" hidden>
-    <h2>Bancada (simulação)</h2>
+  <section class="cartao aux" id="blocoSim" hidden>
+    <h2 class="peq">Bancada (simulação)</h2>
     <label class="linha"><input type="checkbox" id="simAuto"> Sensores seguem a porta virtual</label>
     <label class="linha"><input type="checkbox" id="simAberto"> Sensor de porta ABERTA</label>
     <label class="linha"><input type="checkbox" id="simFechado"> Sensor de porta FECHADA</label>
@@ -96,19 +130,7 @@
     <button class="mini" id="simReiniciar">Reiniciar ESP32</button>
   </section>
 
-  <section class="cartao">
-    <h2>Histórico</h2>
-    <ul id="historico" class="historico"><li class="vazio">Sem eventos ainda.</li></ul>
-  </section>
-
-  <div class="espaco-barra"></div>
 </main>
-
-<nav id="barra-cmd" class="barra-cmd" hidden aria-label="Comandos da porta">
-  <button class="cmd abrir" data-cmd="abrir">Abrir</button>
-  <button class="cmd parar" data-cmd="parar">Parar</button>
-  <button class="cmd fechar" data-cmd="fechar">Fechar</button>
-</nav>
 
 <dialog id="menu">
   <form method="dialog">
