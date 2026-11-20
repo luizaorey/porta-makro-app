@@ -99,7 +99,7 @@ function desenharPorta(pct, naoConfirmado) {
   $('barra').setAttribute('y', TOPO_VAO + h - 8);
   $('barra').style.display = h < 2 ? 'none' : '';
   $('porta').classList.toggle('nao-confirmado', naoConfirmado || pct == null);
-  $('interrog').hidden = pct != null;
+  $('interrog').toggleAttribute('hidden', pct != null);   // SVG não tem .hidden
 }
 
 let ultimaKey = '';
