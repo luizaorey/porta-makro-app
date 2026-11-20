@@ -55,6 +55,7 @@ function abrirApp() {
 // ---------- ciclo de leitura ----------
 async function poll() {
   clearTimeout(timerPoll);
+  if (!backend || $('app').hidden) return;     // ainda na tela de login
   try {
     snap = await backend.snapshot();
     offsetRelogio = snap.agora - Date.now();
