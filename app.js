@@ -7,7 +7,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v6';
+export const VERSAO_APP = 'v7';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -281,26 +281,26 @@ function renderAgenda(t) {
   $('agLigada').checked = cfgA.habilitada; $('agFechar').checked = cfgA.fecharLiberado;
   $('agLigada').disabled = $('agFechar').disabled = !adm;
 
-  // lista de regras
+  // lista de regras: horário grande; toque abre a edição
   const ul = $('agLista'); ul.textContent = '';
+  if (!regras.length) { const v = document.createElement('li'); v.className = 'ag-vazio'; v.style.cursor = 'default'; v.textContent = adm ? 'Nenhuma regra. Toque em + para criar.' : 'Nenhuma regra.'; ul.append(v); }
   for (const r of regras) {
     const li = document.createElement('li'); if (!r.ativa) li.className = 'pausada';
-    const q = document.createElement('div'); q.className = 'quando'; q.textContent = `${rotuloDias(r.dias)} · ${horaRotulo(r.hora)} → ${acaoNome(r.acao)}`;
-    li.append(q);
+    const hora = document.createElement('div'); hora.className = 'hora'; hora.textContent = r.hora;
+    const desc = document.createElement('div'); desc.className = 'desc';
+    const ac = document.createElement('b'); ac.className = r.acao; ac.textContent = (r.acao === 'abrir' ? '↑ ' : '↓ ') + acaoNome(r.acao);
+    desc.append(ac, ` · ${rotuloDias(r.dias)}${r.ativa ? '' : ' · pausada'}`);
+    li.append(hora, desc);
     if (adm) {
-      const lab = document.createElement('label'); lab.className = 'troca'; lab.title = r.ativa ? 'Pausar' : 'Ativar';
+      li.onclick = () => abrirRegra(r);
+      const lab = document.createElement('label'); lab.className = 'troca'; lab.onclick = ev => ev.stopPropagation();
       const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = r.ativa; inp.setAttribute('aria-label', r.ativa ? 'Pausar regra' : 'Ativar regra');
       inp.onchange = () => agAcao(() => backend.agendaAtivar(r.id, inp.checked));
       lab.append(inp, document.createElement('i')); li.append(lab);
-      const ac = document.createElement('div'); ac.className = 'acoes';
-      const ed = document.createElement('button'); ed.className = 'mini'; ed.textContent = 'Editar'; ed.onclick = () => abrirRegra(r);
-      const ex = document.createElement('button'); ex.className = 'mini'; ex.textContent = 'Excluir';
-      ex.onclick = () => { if (confirm(`Excluir a regra "${q.textContent}"?`)) agAcao(() => backend.agendaExcluir(r.id)); };
-      ac.append(ed, ex); li.append(ac);
     }
     ul.append(li);
   }
-  $('agNova').hidden = !adm || !$('formRegra').hidden; $('agSomenteLeitura').hidden = adm;
+  $('agNova').hidden = !adm; $('agSomenteLeitura').hidden = adm;
 }
 async function agAcao(fn) {
   try { await fn(); agKey = ''; await poll(); }
@@ -314,46 +314,73 @@ function textoErroAgenda(m) {
   return { sem_permissao: 'só administradores editam a agenda.', hora_invalida: 'horário inválido.', dias_invalidos: 'escolha pelo menos um dia.' }[m] || m;
 }
 
-// formulário de regra (painel dentro da tela, sem janela flutuante)
-let editando = null;
+// tela de edição da regra (tela cheia, com roda de horário)
+let editando = null, hSel = 8, mSel = 0, diasSel = [1, 2, 3, 4, 5], acaoSel = 'abrir';
+const pad2 = n => String(n).padStart(2, '0');
+const ALT = 44;
+function montarRoda(el, n, aoMudar) {
+  el.textContent = '';
+  for (let i = 0; i < n; i++) {
+    const it = document.createElement('div'); it.className = 'item'; it.textContent = pad2(i); it.setAttribute('role', 'option');
+    it.onclick = () => el.scrollTo({ top: i * ALT, behavior: 'smooth' });
+    el.append(it);
+  }
+  let t;
+  const ler = () => { const v = Math.min(n - 1, Math.max(0, Math.round(el.scrollTop / ALT))); [...el.children].forEach((c, i) => c.classList.toggle('sel', i === v)); aoMudar(v); };
+  el.addEventListener('scroll', () => { clearTimeout(t); t = setTimeout(ler, 70); });
+  el.irPara = v => { el.scrollTop = v * ALT; [...el.children].forEach((c, i) => c.classList.toggle('sel', i === v)); };
+}
+montarRoda($('rodaH'), 24, v => { hSel = v; });
+montarRoda($('rodaM'), 60, v => { mSel = v; });
+
 const chips = $('chipsDias');
 CURTO_DIA.forEach((nome, i) => {
   if (!i) return;
   const b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.textContent = nome; b.dataset.dia = i; b.setAttribute('aria-pressed', 'false');
-  b.onclick = () => b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+  b.onclick = () => { diasSel = diasSel.includes(i) ? diasSel.filter(d => d !== i) : [...diasSel, i]; pintar(); };
   chips.append(b);
 });
-const marcarDias = lista => chips.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(lista.includes(+b.dataset.dia))));
-const diasMarcados = () => [...chips.querySelectorAll('.chip[aria-pressed=true]')].map(b => +b.dataset.dia);
-const acaoMarcada = () => document.querySelector('#segAcao .seg-btn[aria-pressed=true]').dataset.acao;
-const marcarAcao = a => document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.acao === a)));
-document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.onclick = () => marcarAcao(b.dataset.acao));
-document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => marcarDias({ util: [1, 2, 3, 4, 5], todos: [1, 2, 3, 4, 5, 6, 7], fim: [6, 7] }[b.dataset.preset]));
+function pintar() {
+  chips.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(diasSel.includes(+b.dataset.dia))));
+  $('valRepetir').textContent = diasSel.length ? rotuloDias(diasSel) : 'Escolha os dias';
+  document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.acao === acaoSel)));
+  $('valAcao').textContent = acaoNome(acaoSel);
+}
+document.querySelectorAll('#segAcao .seg-btn').forEach(b => b.onclick = () => { acaoSel = b.dataset.acao; pintar(); });
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => { diasSel = { util: [1, 2, 3, 4, 5], todos: [1, 2, 3, 4, 5, 6, 7], fim: [6, 7] }[b.dataset.preset]; pintar(); });
+const alterna = (linha, caixa) => { const abre = $(caixa).hidden; $(caixa).hidden = !abre; $(linha).setAttribute('aria-expanded', String(abre)); };
+$('linhaRepetir').onclick = () => alterna('linhaRepetir', 'boxDias');
+$('linhaAcao').onclick = () => alterna('linhaAcao', 'boxAcao');
+
 function abrirRegra(r) {
   editando = r || null; $('regraErro').textContent = '';
   $('painelFechar').hidden = true;
   $('dlgRegraTitulo').textContent = r ? 'Editar regra' : 'Nova regra';
-  marcarDias(r ? r.dias : [1, 2, 3, 4, 5]);
-  $('regraHora').value = r ? r.hora : '08:00';
-  marcarAcao(r ? r.acao : 'abrir');
-  $('formRegra').hidden = false; $('agNova').hidden = true;
-  $('formRegra').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const [hh, mm] = (r ? r.hora : '08:00').split(':').map(Number); hSel = hh; mSel = mm;
+  diasSel = r ? [...r.dias] : [1, 2, 3, 4, 5]; acaoSel = r ? r.acao : 'abrir';
+  $('boxDias').hidden = !!r === false ? true : true; $('linhaRepetir').setAttribute('aria-expanded', 'false');
+  $('boxAcao').hidden = false; $('linhaAcao').setAttribute('aria-expanded', 'true');
+  $('regraExcluir').hidden = !r;
+  pintar();
+  $('telaRegra').hidden = false; document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => { $('rodaH').irPara(hSel); $('rodaM').irPara(mSel); });
 }
-function fecharRegra() { $('formRegra').hidden = true; $('agNova').hidden = !ehAdmin(); }
+function fecharRegra() { $('telaRegra').hidden = true; document.body.style.overflow = ''; }
 $('agNova').onclick = () => abrirRegra(null);
 $('regraCancelar').onclick = fecharRegra;
-$('formRegra').addEventListener('submit', async ev => {
-  ev.preventDefault();
-  const dias = diasMarcados();
-  if (!dias.length) { $('regraErro').textContent = 'Escolha pelo menos um dia.'; return; }
-  if (!$('regraHora').value) { $('regraErro').textContent = 'Escolha o horário.'; return; }
+$('regraSalvar').onclick = async () => {
+  if (!diasSel.length) { $('regraErro').textContent = 'Escolha pelo menos um dia em "Repetir".'; $('boxDias').hidden = false; $('linhaRepetir').setAttribute('aria-expanded', 'true'); return; }
   $('regraSalvar').disabled = true;
   try {
-    await backend.agendaSalvar({ id: editando?.id, acao: acaoMarcada(), dias, hora: $('regraHora').value, ativa: editando ? editando.ativa : true });
+    await backend.agendaSalvar({ id: editando?.id, acao: acaoSel, dias: diasSel, hora: `${pad2(hSel)}:${pad2(mSel)}`, ativa: editando ? editando.ativa : true });
     fecharRegra(); agKey = ''; poll();
   } catch (e) { $('regraErro').textContent = textoErroAgenda(e.message).replace(/^./, c => c.toUpperCase()); }
   $('regraSalvar').disabled = false;
-});
+};
+$('regraExcluir').onclick = () => {
+  if (!editando || !confirm(`Excluir a regra das ${editando.hora}?`)) return;
+  const id = editando.id; fecharRegra(); agAcao(() => backend.agendaExcluir(id));
+};
 
 // travas
 $('agLigada').onchange = e => agAcao(() => backend.agendaConfig({ habilitada: e.target.checked }));
@@ -361,7 +388,7 @@ $('agFechar').onchange = e => {
   if (!e.target.checked) { agAcao(() => backend.agendaConfig({ fecharLiberado: false })); return; }
   e.target.checked = false;                       // só marca depois da confirmação
   $('chkObstaculo').checked = $('chkParada').checked = false; $('fecharConfirmar').disabled = true;
-  $('formRegra').hidden = true; $('painelFechar').hidden = false;
+  $('painelFechar').hidden = false;
   $('painelFechar').scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
 const confere = () => { $('fecharConfirmar').disabled = !($('chkObstaculo').checked && $('chkParada').checked); };

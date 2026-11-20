@@ -107,7 +107,7 @@
   </div>
   <p id="nota" class="nota" aria-live="polite"></p>
 
-  <div class="secao"><h2>Agenda semanal</h2><span class="fio"></span></div>
+  <div class="secao"><h2>Agenda semanal</h2><span class="fio"></span><button id="agNova" class="mais" aria-label="Nova regra" hidden>+</button></div>
   <section class="cartao agenda" id="blocoAgenda" aria-label="Agenda semanal">
     <p id="agProxima" class="ag-prox"></p>
     <p id="agAviso" class="ag-aviso" hidden></p>
@@ -119,29 +119,6 @@
     </div>
 
     <ul id="agLista" class="ag-lista"></ul>
-    <form id="formRegra" class="painel-regra" hidden>
-      <h3 id="dlgRegraTitulo">Nova regra</h3>
-      <p class="rotulo-campo">1. Dias da semana</p>
-      <div id="chipsDias" class="chips"></div>
-      <div class="grupo-btn">
-        <button type="button" class="mini" data-preset="util">Seg a sex</button>
-        <button type="button" class="mini" data-preset="todos">Todos</button>
-        <button type="button" class="mini" data-preset="fim">Sáb e dom</button>
-      </div>
-      <p class="rotulo-campo">2. Horário</p>
-      <input id="regraHora" type="time" step="60" required value="08:00">
-      <p class="rotulo-campo">3. O que fazer</p>
-      <div class="seg" id="segAcao">
-        <button type="button" class="seg-btn abrir" data-acao="abrir" aria-pressed="true">↑ Abrir</button>
-        <button type="button" class="seg-btn fechar" data-acao="fechar" aria-pressed="false">↓ Fechar</button>
-      </div>
-      <p id="regraErro" class="erro" role="alert"></p>
-      <div class="grupo-btn">
-        <button type="submit" class="primario" id="regraSalvar">Salvar regra</button>
-        <button type="button" class="link" id="regraCancelar">Cancelar</button>
-      </div>
-    </form>
-
     <div id="painelFechar" class="painel-regra" hidden>
       <h3>Liberar fechamento automático?</h3>
       <p class="dica">A agenda vai fechar a porta sozinha, sem ninguém olhando. Antes de liberar, confirme que você testou na loja:</p>
@@ -153,7 +130,6 @@
       </div>
     </div>
 
-    <button id="agNova" class="secundario">+ Nova regra</button>
     <p id="agSomenteLeitura" class="dica" hidden>Só administradores editam a agenda.</p>
     <p class="dica">Horário de Candeias/BA. Cada regra repete toda semana nos dias marcados e dá um único pulso, como apertar o botão. Parar no meio ou mexer na porta à mão não faz a agenda tentar de novo: ela só volta no próximo horário. Se o ESP32 estiver sem comunicação na hora marcada, o comando é descartado e fica registrado na atividade.</p>
   </section>
@@ -184,6 +160,43 @@
   </section>
 
 </main>
+
+<div id="telaRegra" class="tela-regra" hidden role="dialog" aria-modal="true" aria-label="Regra da agenda">
+  <header class="tela-topo">
+    <button id="regraCancelar" class="tela-voltar" aria-label="Voltar">←</button>
+    <h3 id="dlgRegraTitulo">Nova regra</h3>
+    <button id="regraSalvar" class="tela-salvar">Salvar</button>
+  </header>
+  <div class="tela-corpo">
+    <div class="rodas" aria-label="Horário">
+      <div class="faixa-sel"></div>
+      <div class="roda" id="rodaH" role="listbox" aria-label="Hora"></div>
+      <div class="roda-sep">:</div>
+      <div class="roda" id="rodaM" role="listbox" aria-label="Minuto"></div>
+    </div>
+
+    <button type="button" class="linha-cfg" id="linhaRepetir" aria-expanded="false"><span>Repetir</span><b id="valRepetir">Segunda a sexta</b><i>›</i></button>
+    <div id="boxDias" class="caixa-cfg" hidden>
+      <div id="chipsDias" class="chips"></div>
+      <div class="grupo-btn">
+        <button type="button" class="mini" data-preset="util">Seg a sex</button>
+        <button type="button" class="mini" data-preset="todos">Todos</button>
+        <button type="button" class="mini" data-preset="fim">Sáb e dom</button>
+      </div>
+    </div>
+
+    <button type="button" class="linha-cfg" id="linhaAcao" aria-expanded="true"><span>Ação</span><b id="valAcao">Abrir</b><i>›</i></button>
+    <div id="boxAcao" class="caixa-cfg">
+      <div class="seg" id="segAcao">
+        <button type="button" class="seg-btn abrir" data-acao="abrir" aria-pressed="true">↑ Abrir</button>
+        <button type="button" class="seg-btn fechar" data-acao="fechar" aria-pressed="false">↓ Fechar</button>
+      </div>
+    </div>
+
+    <p id="regraErro" class="erro" role="alert"></p>
+  </div>
+  <button id="regraExcluir" class="tela-excluir" hidden>Excluir regra</button>
+</div>
 
 <dialog id="menu">
   <form method="dialog">
