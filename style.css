@@ -175,3 +175,7 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 .tela-excluir { border: 0; border-top: 1px solid var(--borda); background: var(--bg); color: var(--erro); font-size: 1.05rem; font-weight: 600; height: 64px; padding-bottom: env(safe-area-inset-bottom); }
 .tela-excluir[hidden] { display: none; }
 .historico .alerta-ag .o-que { color: var(--erro); }
+
+.ag-lista .acoes { grid-column: 1 / -1; display: flex; gap: 8px; margin-top: 4px; }
+.ag-lista .acoes .mini { padding: 6px 14px; min-height: 38px; font-size: .9rem; }
+.ag-lista .acoes .excluir { color: var(--erro); }

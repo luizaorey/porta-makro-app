@@ -7,7 +7,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v7';
+export const VERSAO_APP = 'v8';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -297,6 +297,11 @@ function renderAgenda(t) {
       const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = r.ativa; inp.setAttribute('aria-label', r.ativa ? 'Pausar regra' : 'Ativar regra');
       inp.onchange = () => agAcao(() => backend.agendaAtivar(r.id, inp.checked));
       lab.append(inp, document.createElement('i')); li.append(lab);
+      const ac2 = document.createElement('div'); ac2.className = 'acoes'; ac2.onclick = ev => ev.stopPropagation();
+      const ed = document.createElement('button'); ed.className = 'mini'; ed.textContent = '✎ Editar'; ed.onclick = () => abrirRegra(r);
+      const ex = document.createElement('button'); ex.className = 'mini excluir'; ex.textContent = '🗑 Excluir';
+      ex.onclick = () => { if (confirm(`Excluir a regra das ${r.hora} (${acaoNome(r.acao)}, ${rotuloDias(r.dias)})?`)) agAcao(() => backend.agendaExcluir(r.id)); };
+      ac2.append(ed, ex); li.append(ac2);
     }
     ul.append(li);
   }
