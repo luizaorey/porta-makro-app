@@ -1,4 +1,4 @@
-import { derivar, CFG_PADRAO, textoComando, horaCurta } from './logic.js';
+import { derivar, CFG_PADRAO, textoComando, horaCurta, proximaExecucao, rotuloDias, resumoSemana, horaRotulo, diaLocal, isoDow, NOMES_DIA, CURTO_DIA } from './logic.js';
 import { criarSimulacao } from './backend-sim.js';
 
 const $ = id => document.getElementById(id);
@@ -150,6 +150,7 @@ function render() {
   const key = snap.eventos.map(e => e.id).join(',');
   if (key !== ultimaKey) { ultimaKey = key; desenharHistorico(snap.eventos); }
 
+  renderAgenda(t);
   agendarQuadro(!!v.movimento);   // animação suave só enquanto há movimento
 }
 function horaComSegundos(ms) {
@@ -170,9 +171,12 @@ function desenharHistorico(evs) {
     const w = document.createElement('div'); w.className = 'quando';
     const a = document.createElement('div'); a.className = 'o-que';
     const q = document.createElement('div'); q.className = 'quem';
-    if (e.tipo === 'chegada_aberta') { a.textContent = 'Abertura confirmada'; q.textContent = e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo'; }
-    else if (e.tipo === 'chegada_fechada') { a.textContent = 'Fechamento confirmado'; q.textContent = e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo'; }
-    else if (e.tipo === 'comando') { a.textContent = e.msg; q.textContent = `Enviado por ${e.usuario}`; }
+    const origemTxt = e.origem === 'agenda' ? 'Agenda semanal' : e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo';
+    if (e.tipo === 'chegada_aberta') { a.textContent = 'Abertura confirmada'; q.textContent = origemTxt; }
+    else if (e.tipo === 'chegada_fechada') { a.textContent = 'Fechamento confirmado'; q.textContent = origemTxt; }
+    else if (e.tipo === 'comando') { a.textContent = e.msg; q.textContent = e.origem === 'agenda' ? 'Agenda semanal' : `Enviado por ${e.usuario}`; }
+    else if (e.tipo === 'agenda_falha') { li.classList.add('alerta-ag'); a.textContent = e.msg; q.textContent = 'Agenda semanal'; }
+    else if (e.tipo === 'agenda_info') { a.textContent = e.msg; }
     else { a.textContent = e.msg || e.tipo; }
     const dia = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Bahia' }).format(new Date(e.em));
     const hoje = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Bahia' }).format(new Date());
@@ -221,9 +225,136 @@ function ligarBancada() {
   $('simFechado').onchange = e => { bn.setSensor('fechado', e.target.checked); sync(); };
   $('simOffline').onchange = e => bn.setOnline(!e.target.checked);
   $('simReiniciar').onclick = () => bn.reiniciar();
+  $('simAvancar').onclick = () => { const p = bn.avancarAteProxima(); $('simRelogio').textContent = p ? `Relógio avançado: faltam 5 s para ${acaoNome(p.acao)} às ${horaRotulo(p.regra.hora)}.` : 'Não há regra ativa (e agenda ligada) para avançar.'; };
   document.querySelectorAll('[data-ext]').forEach(b => b.onclick = () => bn.externo(b.dataset.ext));
   sync(); setInterval(sync, 700);
 }
+
+
+// ---------- agenda semanal ----------
+const ehAdmin = () => backend.modo === 'simulacao' || backend.usuario()?.papel === 'admin';
+const acaoNome = a => (a === 'abrir' ? 'Abrir' : 'Fechar');
+let agKey = '';
+function renderAgenda(t) {
+  const regras = snap.agenda || [], cfgA = snap.agendaCfg || { habilitada: false, fecharLiberado: false };
+  const adm = ehAdmin();
+
+  // próxima execução (recalcula todo render, é barato)
+  const p = cfgA.habilitada ? proximaExecucao(regras, t) : null;
+  let txt;
+  if (!regras.length) txt = 'Nenhuma regra ainda.';
+  else if (!cfgA.habilitada) txt = 'Agenda desligada — nenhuma regra é executada.';
+  else if (!p) txt = 'Nenhuma regra ativa.';
+  else {
+    const dd = diaLocal(p.em) - diaLocal(t);
+    const quando = dd === 0 ? 'hoje' : dd === 1 ? 'amanhã' : NOMES_DIA[isoDow(diaLocal(p.em))].toLowerCase();
+    txt = `Próxima: ${quando} às ${horaCurta(p.em)} — ${acaoNome(p.acao)}`;
+  }
+  $('agProxima').textContent = txt;
+
+  const temFechar = regras.some(r => r.ativa && r.acao === 'fechar');
+  const aviso = $('agAviso');
+  if (cfgA.habilitada && temFechar && !cfgA.fecharLiberado) { aviso.hidden = false; aviso.textContent = 'Fechamento automático ainda bloqueado: as regras de Fechar não serão enviadas até você liberar.'; }
+  else aviso.hidden = true;
+
+  const hoje = isoDow(diaLocal(t));
+  const key = JSON.stringify([regras, cfgA, adm, hoje]);
+  if (key === agKey) return;
+  agKey = key;
+
+  // grade da semana
+  const grade = $('agGrade'); grade.textContent = '';
+  for (const d of resumoSemana(regras)) {
+    const row = document.createElement('div'); row.className = 'ag-dia' + (d.dia === hoje ? ' hoje' : '');
+    const b = document.createElement('b'); b.textContent = CURTO_DIA[d.dia];
+    const it = document.createElement('div'); it.className = 'itens';
+    if (!d.itens.length) { const v = document.createElement('span'); v.className = 'vazio'; v.textContent = 'sem regra'; it.append(v); }
+    for (const i of d.itens) {
+      const c = document.createElement('span'); c.className = `ag-item ${i.acao}${i.ativa ? '' : ' pausada'}`;
+      c.textContent = `${i.acao === 'abrir' ? '↑' : '↓'} ${horaRotulo(i.hora)}`; it.append(c);
+    }
+    row.append(b, it); grade.append(row);
+  }
+
+  // travas
+  $('agLigada').checked = cfgA.habilitada; $('agFechar').checked = cfgA.fecharLiberado;
+  $('agLigada').disabled = $('agFechar').disabled = !adm;
+
+  // lista de regras
+  const ul = $('agLista'); ul.textContent = '';
+  for (const r of regras) {
+    const li = document.createElement('li'); if (!r.ativa) li.className = 'pausada';
+    const q = document.createElement('div'); q.className = 'quando'; q.textContent = `${rotuloDias(r.dias)} · ${horaRotulo(r.hora)} → ${acaoNome(r.acao)}`;
+    li.append(q);
+    if (adm) {
+      const lab = document.createElement('label'); lab.className = 'troca'; lab.title = r.ativa ? 'Pausar' : 'Ativar';
+      const inp = document.createElement('input'); inp.type = 'checkbox'; inp.checked = r.ativa; inp.setAttribute('aria-label', r.ativa ? 'Pausar regra' : 'Ativar regra');
+      inp.onchange = () => agAcao(() => backend.agendaAtivar(r.id, inp.checked));
+      lab.append(inp, document.createElement('i')); li.append(lab);
+      const ac = document.createElement('div'); ac.className = 'acoes';
+      const ed = document.createElement('button'); ed.className = 'mini'; ed.textContent = 'Editar'; ed.onclick = () => abrirRegra(r);
+      const ex = document.createElement('button'); ex.className = 'mini'; ex.textContent = 'Excluir';
+      ex.onclick = () => { if (confirm(`Excluir a regra "${q.textContent}"?`)) agAcao(() => backend.agendaExcluir(r.id)); };
+      ac.append(ed, ex); li.append(ac);
+    }
+    ul.append(li);
+  }
+  $('agNova').hidden = !adm; $('agSomenteLeitura').hidden = adm;
+}
+async function agAcao(fn) {
+  try { await fn(); agKey = ''; await poll(); }
+  catch (e) { retorno('Agenda: ' + textoErroAgenda(e.message), true, 7000); agKey = ''; poll(); }
+}
+function textoErroAgenda(m) {
+  if (m.startsWith('conflito:')) {
+    const [, acao, dias] = m.split(':');
+    return `já existe uma regra de ${acaoNome(acao)} em ${rotuloDias(dias.split(',').map(Number))} nesse horário. Escolha outro horário ou outros dias.`;
+  }
+  return { sem_permissao: 'só administradores editam a agenda.', hora_invalida: 'horário inválido.', dias_invalidos: 'escolha pelo menos um dia.' }[m] || m;
+}
+
+// diálogo de regra
+let editando = null;
+const chips = $('chipsDias');
+CURTO_DIA.forEach((nome, i) => {
+  if (!i) return;
+  const lab = document.createElement('label'); const inp = document.createElement('input'); inp.type = 'checkbox'; inp.value = i;
+  const sp = document.createElement('span'); sp.textContent = nome; lab.append(inp, sp); chips.append(lab);
+});
+const marcarDias = lista => chips.querySelectorAll('input').forEach(i => { i.checked = lista.includes(+i.value); });
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => marcarDias({ util: [1, 2, 3, 4, 5], todos: [1, 2, 3, 4, 5, 6, 7], fim: [6, 7] }[b.dataset.preset]));
+function abrirRegra(r) {
+  editando = r || null; $('regraErro').textContent = '';
+  $('dlgRegraTitulo').textContent = r ? 'Editar regra' : 'Nova regra';
+  marcarDias(r ? r.dias : [1, 2, 3, 4, 5]);
+  $('regraHora').value = r ? r.hora : '08:00';
+  document.querySelector(`input[name=regraAcao][value=${r ? r.acao : 'abrir'}]`).checked = true;
+  $('dlgRegra').showModal();
+}
+$('agNova').onclick = () => abrirRegra(null);
+$('regraCancelar').onclick = () => $('dlgRegra').close();
+$('formRegra').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const dias = [...chips.querySelectorAll('input:checked')].map(i => +i.value);
+  if (!dias.length) { $('regraErro').textContent = 'Escolha pelo menos um dia.'; return; }
+  try {
+    await backend.agendaSalvar({ id: editando?.id, acao: document.querySelector('input[name=regraAcao]:checked').value, dias, hora: $('regraHora').value, ativa: editando ? editando.ativa : true });
+    $('dlgRegra').close(); agKey = ''; poll();
+  } catch (e) { $('regraErro').textContent = textoErroAgenda(e.message).replace(/^./, c => c.toUpperCase()); }
+});
+
+// travas
+$('agLigada').onchange = e => agAcao(() => backend.agendaConfig({ habilitada: e.target.checked }));
+$('agFechar').onchange = e => {
+  if (!e.target.checked) { agAcao(() => backend.agendaConfig({ fecharLiberado: false })); return; }
+  e.target.checked = false;                       // só marca depois da confirmação
+  $('chkObstaculo').checked = $('chkParada').checked = false; $('fecharConfirmar').disabled = true;
+  $('dlgFechar').showModal();
+};
+const confere = () => { $('fecharConfirmar').disabled = !($('chkObstaculo').checked && $('chkParada').checked); };
+$('chkObstaculo').onchange = $('chkParada').onchange = confere;
+$('fecharCancelar').onclick = () => $('dlgFechar').close();
+$('fecharConfirmar').onclick = () => { $('dlgFechar').close(); agAcao(() => backend.agendaConfig({ fecharLiberado: true })); };
 
 // ---------- login / menu ----------
 $('formLogin').addEventListener('submit', async ev => {

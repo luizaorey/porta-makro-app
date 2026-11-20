@@ -107,6 +107,23 @@
   </div>
   <p id="nota" class="nota" aria-live="polite"></p>
 
+  <div class="secao"><h2>Agenda semanal</h2><span class="fio"></span></div>
+  <section class="cartao agenda" id="blocoAgenda" aria-label="Agenda semanal">
+    <p id="agProxima" class="ag-prox"></p>
+    <p id="agAviso" class="ag-aviso" hidden></p>
+    <div id="agGrade" class="ag-grade"></div>
+
+    <div id="agTrava" class="ag-travas">
+      <label class="troca"><span>Agenda ligada</span><input type="checkbox" id="agLigada"><i></i></label>
+      <label class="troca"><span>Fechamento automático liberado</span><input type="checkbox" id="agFechar"><i></i></label>
+    </div>
+
+    <ul id="agLista" class="ag-lista"></ul>
+    <button id="agNova" class="secundario">+ Nova regra</button>
+    <p id="agSomenteLeitura" class="dica" hidden>Só administradores editam a agenda.</p>
+    <p class="dica">Horário de Candeias/BA. Cada regra repete toda semana nos dias marcados e dá um único pulso, como apertar o botão. Parar no meio ou mexer na porta à mão não faz a agenda tentar de novo: ela só volta no próximo horário. Se o ESP32 estiver sem comunicação na hora marcada, o comando é descartado e fica registrado na atividade.</p>
+  </section>
+
   <div class="secao"><h2>Atividade recente</h2><span class="fio"></span></div>
   <ul id="historico" class="historico"><li class="vazio">Sem eventos ainda.</li></ul>
 
@@ -128,9 +145,52 @@
     </div>
     <label class="linha"><input type="checkbox" id="simOffline"> Cortar comunicação do ESP32</label>
     <button class="mini" id="simReiniciar">Reiniciar ESP32</button>
+    <div class="grupo-btn"><button class="mini" id="simAvancar">Avançar relógio até a próxima regra da agenda</button></div>
+    <p class="dica" id="simRelogio"></p>
   </section>
 
 </main>
+
+<dialog id="dlgRegra">
+  <form id="formRegra" method="dialog">
+    <h2 id="dlgRegraTitulo">Nova regra</h2>
+    <fieldset class="dias" aria-label="Dias da semana">
+      <legend>Dias</legend>
+      <div id="chipsDias" class="chips"></div>
+      <div class="grupo-btn">
+        <button type="button" class="mini" data-preset="util">Seg a sex</button>
+        <button type="button" class="mini" data-preset="todos">Todos</button>
+        <button type="button" class="mini" data-preset="fim">Sáb e dom</button>
+      </div>
+    </fieldset>
+    <label>Horário <input id="regraHora" type="time" step="60" required value="08:00"></label>
+    <fieldset class="acao" aria-label="Ação">
+      <legend>Ação</legend>
+      <div class="seg">
+        <label><input type="radio" name="regraAcao" value="abrir" checked><span>↑ Abrir</span></label>
+        <label><input type="radio" name="regraAcao" value="fechar"><span>↓ Fechar</span></label>
+      </div>
+    </fieldset>
+    <p id="regraErro" class="erro" role="alert"></p>
+    <div class="grupo-btn">
+      <button type="submit" class="primario" id="regraSalvar">Salvar regra</button>
+      <button type="button" class="link" id="regraCancelar">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgFechar">
+  <form method="dialog">
+    <h2>Liberar fechamento automático?</h2>
+    <p class="dica">A agenda vai fechar a porta sozinha, sem ninguém olhando. Antes de liberar, confirme que você testou na loja:</p>
+    <label class="linha"><input type="checkbox" id="chkObstaculo"> A proteção contra obstáculos para e reverte a porta quando algo atrapalha o fechamento.</label>
+    <label class="linha"><input type="checkbox" id="chkParada"> A parada local (botoeira e controle sem fio) funciona com a porta em movimento.</label>
+    <div class="grupo-btn">
+      <button type="button" class="primario" id="fecharConfirmar" disabled>Liberar fechamento</button>
+      <button type="button" class="link" id="fecharCancelar">Cancelar</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="menu">
   <form method="dialog">

@@ -41,6 +41,8 @@ export async function criarNuvem(cfg) {
         agora: paraMs(data.agora),
         est: paraEstado(data.estado),
         cfg: data.config,
+        agenda: data.agenda || [],
+        agendaCfg: { habilitada: !!data.agenda_cfg?.habilitada, fecharLiberado: !!data.agenda_cfg?.fechar_liberado },
         eventos: (data.eventos || []).map(e => ({ ...e, em: paraMs(e.em) })),
         cmds: (data.comandos || []).map(c => ({ ...c, criado: paraMs(c.criado), executado: paraMs(c.executado) })),
       };
@@ -52,6 +54,19 @@ export async function criarNuvem(cfg) {
     },
     async configurar(parcial) {
       const { error } = await sb.rpc('porta_configurar', { p_tempo_abrir_s: parcial.tempo_abrir_s, p_tempo_fechar_s: parcial.tempo_fechar_s, p_pulso_ms: parcial.pulso_ms });
+      if (error) throw new Error(error.message);
+    },
+
+    // --- agenda semanal (edição só para administrador; o banco confere de novo) ---
+    async agendaSalvar(r) {
+      const { data, error } = await sb.rpc('porta_agenda_salvar', { p_id: r.id ?? null, p_acao: r.acao, p_dias: r.dias, p_hora: r.hora, p_ativa: r.ativa ?? true });
+      if (error) throw new Error(error.message);
+      return data;
+    },
+    async agendaAtivar(id, ativa) { const { error } = await sb.rpc('porta_agenda_ativar', { p_id: id, p_ativa: ativa }); if (error) throw new Error(error.message); },
+    async agendaExcluir(id) { const { error } = await sb.rpc('porta_agenda_excluir', { p_id: id }); if (error) throw new Error(error.message); },
+    async agendaConfig({ habilitada, fecharLiberado }) {
+      const { error } = await sb.rpc('porta_agenda_config', { p_habilitada: habilitada ?? null, p_fechar_liberado: fecharLiberado ?? null });
       if (error) throw new Error(error.message);
     },
 

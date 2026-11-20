@@ -1,9 +1,12 @@
 // Modo simulação: a nuvem (server-model.js) e um ESP32 + porta virtuais rodando no próprio navegador.
 // Serve para demonstrar o ciclo completo antes de ligar qualquer saída à porta real.
-import { novoServidor, enviarComando, sincronizarDispositivo } from './server-model.js';
+import { novoServidor, enviarComando, sincronizarDispositivo, agendaSalvar, agendaAtivar, agendaExcluir, agendaConfigurar, lerComTick } from './server-model.js';
+import { proximaExecucao } from './logic.js';
 
 export function criarSimulacao() {
   const S = novoServidor();
+  let desloc = 0;                       // relógio da loja na simulação (dá para avançar até o próximo horário da agenda)
+  const agoraSim = () => Date.now() + desloc;
   const dev = {
     online: true,
     auto: true,              // sensores seguem a porta virtual; desligado = você aciona os sensores à mão (bancada)
@@ -34,7 +37,7 @@ export function criarSimulacao() {
   function ciclo() {
     if (!dev.online) return;
     lerSensores();
-    const cmds = sincronizarDispositivo(S, { aberto: dev.aberto, fechado: dev.fechado, boot: dev.boot, ack: dev.ack }, Date.now());
+    const cmds = sincronizarDispositivo(S, { aberto: dev.aberto, fechado: dev.fechado, boot: dev.boot, ack: dev.ack }, agoraSim());
     dev.boot = false; dev.ack = [];
     cmds.forEach(c => { pulso(c.acao); dev.ack.push(c.id); });
     if (dev.ack.length) setTimeout(ciclo, S.cfg.pulso_ms + 100); // confirma logo após o pulso
@@ -55,16 +58,23 @@ export function criarSimulacao() {
     modo: 'simulacao',
     usuario: () => ({ nome: 'Você (simulação)' }),
     async snapshot() {
+      lerComTick(S, agoraSim());
       return {
-        agora: Date.now(),
+        agora: agoraSim(),
         est: { ...S.est },
         cfg: S.cfg,
+        agenda: S.agenda.map(r => ({ id: r.id, acao: r.acao, dias: [...r.dias], hora: r.hora, ativa: r.ativa })),
+        agendaCfg: { ...S.agendaCfg },
         eventos: S.eventos.slice(-40).reverse().map(e => ({ ...e })),
         cmds: S.cmds.slice(-8).map(c => ({ ...c })),
       };
     },
-    async comando(acao) { return enviarComando(S, acao, 'Você (simulação)', Date.now()); },
+    async comando(acao) { return enviarComando(S, acao, 'Você (simulação)', agoraSim()); },
     configurar(parcial) { Object.assign(S.cfg, parcial); },
+    async agendaSalvar(r) { return agendaSalvar(S, r, agoraSim()); },
+    async agendaAtivar(id, ativa) { agendaAtivar(S, id, ativa, agoraSim()); },
+    async agendaExcluir(id) { agendaExcluir(S, id); },
+    async agendaConfig(c) { agendaConfigurar(S, c); },
     onChegada(f) { ouvintes.add(f); return () => ouvintes.delete(f); },
     // --- controles de bancada (só existem na simulação) ---
     bancada: {
@@ -74,6 +84,13 @@ export function criarSimulacao() {
       externo(acao) { pulso(acao); },   // controle sem fio / botoeira da loja
       setOnline(v) { dev.online = v; if (v) dev.boot = false; },
       reiniciar() { dev.boot = true; dev.ack = []; },
+      // pula o relógio para 5 s antes da próxima regra ativa (para ver a agenda disparar sem esperar)
+      avancarAteProxima() {
+        const p = proximaExecucao(S.agenda, agoraSim());
+        if (!p) return null;
+        desloc += (p.em - 5000) - agoraSim();
+        return p;
+      },
     },
   };
 }

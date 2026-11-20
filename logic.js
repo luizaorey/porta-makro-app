@@ -103,3 +103,50 @@ export function textoChegada(tipo, ms, tz) {
     ? `A porta abriu completamente às ${horaCurta(ms, tz)}.`
     : `A porta fechou completamente às ${horaCurta(ms, tz)}.`;
 }
+
+// ---------- Agenda semanal ----------
+// Horário da loja: Candeias/BA = America/Bahia, UTC-3 o ano todo (sem horário de verão desde 2019).
+export const FUSO_OFFSET_MS = -3 * 3600e3;
+export const NOMES_DIA = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];   // ISO: 1=segunda … 7=domingo
+export const CURTO_DIA = ['', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+export const diaLocal = ms => Math.floor((ms + FUSO_OFFSET_MS) / 864e5);        // nº do dia local desde 1970
+export const isoDow = dia => { const d = new Date(dia * 864e5).getUTCDay(); return d === 0 ? 7 : d; };
+export const dataDe = dia => new Date(dia * 864e5).toISOString().slice(0, 10);
+export const instanteDe = (dia, hhmm) => { const [h, m] = hhmm.split(':').map(Number); return dia * 864e5 + (h * 60 + m) * 6e4 - FUSO_OFFSET_MS; };
+export const horaRotulo = hhmm => hhmm.replace(':', 'h');                         // 08:00 -> 08h00
+
+export function proximaExecucao(regras, agoraMs) {
+  let melhor = null; const hoje = diaLocal(agoraMs);
+  for (let i = 0; i <= 7; i++) {
+    const dia = hoje + i, dow = isoDow(dia);
+    for (const r of regras) {
+      if (!r.ativa || !r.dias.includes(dow)) continue;
+      const inst = instanteDe(dia, r.hora);
+      if (inst > agoraMs && (!melhor || inst < melhor.em)) melhor = { em: inst, acao: r.acao, regra: r };
+    }
+  }
+  return melhor;
+}
+
+export function rotuloDias(dias) {
+  const d = [...new Set(dias)].sort((a, b) => a - b), k = d.join(',');
+  if (k === '1,2,3,4,5,6,7') return 'Todos os dias';
+  if (k === '1,2,3,4,5') return 'Segunda a sexta';
+  if (k === '6,7') return 'Sábado e domingo';
+  const partes = []; let i = 0;
+  while (i < d.length) {
+    let j = i; while (j + 1 < d.length && d[j + 1] === d[j] + 1) j++;
+    partes.push(j - i >= 2 ? `${CURTO_DIA[d[i]]} a ${CURTO_DIA[d[j]]}` : d.slice(i, j + 1).map(x => CURTO_DIA[x]).join(', '));
+    i = j + 1;
+  }
+  return partes.join(', ');
+}
+
+// Resumo por dia: [{dia:1, itens:[{hora, acao, ativa}]}] — para a grade da semana.
+export function resumoSemana(regras) {
+  return [1, 2, 3, 4, 5, 6, 7].map(dia => ({
+    dia,
+    itens: regras.filter(r => r.dias.includes(dia)).map(r => ({ hora: r.hora, acao: r.acao, ativa: r.ativa, id: r.id })).sort((a, b) => a.hora.localeCompare(b.hora)),
+  }));
+}
