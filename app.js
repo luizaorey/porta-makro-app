@@ -8,7 +8,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v11';
+export const VERSAO_APP = 'v12';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -16,6 +16,7 @@ let falhaRede = false;
 let pendente = null;        // comando enviado aguardando confirmação do ESP32
 let msgRetorno = { texto: '', erro: false, ate: 0 };
 let timerPoll = null;
+let animarEstimado = (ler('animarEstimado') !== '0');   // preferência deste aparelho; padrão: animar
 let aguardandoPlaca = false;   // Wi-Fi acabou de ser configurado: espera a primeira resposta da placa
 let wifiCtl = null;
 
@@ -126,12 +127,15 @@ function render() {
   // --- desenho ---
   let pct = v.pct, naoConf = v.estimado || !!v.aviso;
   if (semSinal) { pct = u ? (u.pos === 'aberta' ? 100 : 0) : 0; naoConf = true; }   // última posição confirmada, esmaecida
+  const semAnim = !animarEstimado && !semSinal && (v.estimado || v.movimento || v.aviso || (v.posicao === 'entre'));
+  if (semAnim) { pct = u ? (u.pos === 'aberta' ? 100 : 0) : 0; naoConf = true; }   // lâmina parada na última posição confirmada
   desenharPorta(pct, { naoConfirmado: naoConf, desconhecida: semSinal || v.posicao === 'falha' || (pct == null) });
 
   // --- selo sob a porta: confirmado x estimado ---
   const selo = $('selo');
   selo.className = 'selo';
-  if (semSinal) $('pctTxt').textContent = '';
+  if (semAnim) { selo.classList.add('estimado'); $('pctTxt').textContent = 'sem animação · só o fim de curso confirma'; }
+  else if (semSinal) $('pctTxt').textContent = '';
   else if (v.posicao === 'falha') $('pctTxt').textContent = 'Leitura inválida';
   else if (v.estimado) { selo.classList.add('estimado'); $('pctTxt').textContent = `≈ ${Math.round(pct)}% aberta · estimado`; }
   else if (pct == null) { selo.classList.add('estimado'); $('pctTxt').textContent = 'Posição desconhecida · sem estimativa'; }
@@ -144,6 +148,8 @@ function render() {
     sub = u ? `Última confirmação · ${u.pos === 'aberta' ? 'Aberta' : 'Fechada'} às ${horaCurta(u.em)}` : 'Ainda sem confirmação';
   } else if (v.posicao === 'falha') {
     rotulo = 'Falha nos sensores'; classe = 'erro'; sub = 'Os dois fins de curso estão ativos ao mesmo tempo';
+  } else if (v.movimento && !animarEstimado) {
+    rotulo = v.movimento === 'abrindo' ? 'Comando de abertura enviado' : 'Comando de fechamento enviado'; sub = 'Aguardando o fim de curso confirmar';
   } else if (v.movimento) {
     rotulo = v.movimento === 'abrindo' ? 'Abrindo' : 'Fechando'; sub = 'Movimento estimado · aguardando o sensor';
   } else if (v.posicao === 'entre') {
@@ -450,6 +456,8 @@ $('btnMenu').addEventListener('click', () => {
   abrirFolha('folhaAjustes');
 });
 $('btnWifi').addEventListener('click', () => wifiCtl.abrir());
+$('optAnimar').checked = animarEstimado;
+$('optAnimar').addEventListener('change', e => { animarEstimado = e.target.checked; salvar('animarEstimado', animarEstimado ? '1' : '0'); if (snap) render(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('telaRegra').hidden) fecharFolhas(); });
 $('cfgSalvar').addEventListener('click', async () => {
   try {
