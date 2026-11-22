@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Porta Makro</title>
 <meta name="description" content="Controle da porta de enrolar da Makro Boutique">
-<meta name="theme-color" content="#faf5ee">
+<meta name="theme-color" content="#eef1f4">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -13,9 +13,6 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Porta Makro">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -35,80 +32,89 @@
 <main id="app" hidden>
   <div id="faixaSim" class="faixa-sim" hidden>MODO SIMULAÇÃO — nada está ligado à porta real</div>
 
-  <header class="marca">
-    <div class="marca-centro">
-      <div class="marca-nome">MAKRO</div>
-      <div class="marca-sub"><span></span>BOUTIQUE<span></span></div>
+  <div class="tela">
+    <header class="topo">
+      <div>
+        <h1>Porta de enrolar</h1>
+        <div class="conexao"><span id="ponto" class="ponto"></span><span id="conTxt">Conectando…</span><span id="atualizadoTxt" class="atualizado"></span></div>
+      </div>
+      <button id="btnMenu" class="icone" aria-label="Ajustes"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </header>
+
+    <div class="palco">
+      <svg id="porta" viewBox="0 0 300 290" role="img" aria-label="Porta de enrolar">
+        <defs>
+          <clipPath id="vao"><rect x="52" y="70" width="196" height="192"/></clipPath>
+          <linearGradient id="gCaixa" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e9edf0"/><stop offset=".22" stop-color="#c7ced4"/><stop offset=".55" stop-color="#8d959c"/><stop offset=".85" stop-color="#b3bac0"/><stop offset="1" stop-color="#6f777e"/>
+          </linearGradient>
+          <linearGradient id="gGuia" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#4b5258"/><stop offset=".5" stop-color="#2f353a"/><stop offset="1" stop-color="#40474d"/>
+          </linearGradient>
+          <linearGradient id="gFundo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#14171a"/><stop offset="1" stop-color="#2a3035"/></linearGradient>
+          <linearGradient id="gSombraChao" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset=".5" stop-color="#000" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>
+          <pattern id="ripas" x="52" y="70" width="196" height="12" patternUnits="userSpaceOnUse">
+            <rect width="196" height="12" fill="#b6bdc3"/>
+            <rect width="196" height="2.2" fill="#eef1f3"/>
+            <rect y="2.2" width="196" height="3" fill="#cfd5da"/>
+            <rect y="8.6" width="196" height="3.4" fill="#7b838a"/>
+            <rect y="11" width="196" height="1" fill="#5d646a"/>
+          </pattern>
+        </defs>
+
+        <ellipse cx="150" cy="268" rx="125" ry="7" fill="url(#gSombraChao)"/>
+        <!-- vão -->
+        <rect x="52" y="70" width="196" height="192" fill="url(#gFundo)"/>
+        <!-- lâmina: só ela se move -->
+        <g clip-path="url(#vao)">
+          <g id="lamina">
+            <rect x="52" y="70" width="196" height="192" fill="url(#ripas)"/>
+            <rect x="52" y="253" width="196" height="9" fill="#555c62"/>
+            <rect x="52" y="253" width="196" height="2" fill="#8d959b"/>
+          </g>
+        </g>
+        <text id="interrog" x="150" y="182" text-anchor="middle" class="interrog">?</text>
+        <!-- guias (fixas) -->
+        <rect x="36" y="70" width="16" height="194" fill="url(#gGuia)"/>
+        <rect x="248" y="70" width="16" height="194" fill="url(#gGuia)"/>
+        <g fill="#a9b0b6"><circle cx="44" cy="82" r="1.8"/><circle cx="44" cy="254" r="1.8"/><circle cx="256" cy="82" r="1.8"/><circle cx="256" cy="254" r="1.8"/></g>
+        <!-- caixa superior (fixa) -->
+        <rect x="30" y="10" width="240" height="64" rx="12" fill="url(#gCaixa)"/>
+        <rect x="30" y="10" width="240" height="64" rx="12" fill="none" stroke="#5b636a" stroke-opacity=".35"/>
+        <g fill="#a9b0b6" stroke="#5b636a" stroke-width=".6"><circle cx="46" cy="22" r="2.2"/><circle cx="254" cy="22" r="2.2"/><circle cx="46" cy="62" r="2.2"/><circle cx="254" cy="62" r="2.2"/></g>
+      </svg>
+      <div id="selo" class="selo"><span id="pctTxt"></span></div>
     </div>
-    <button id="btnMenu" class="icone" aria-label="Ajustes">
-      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
-    </button>
-  </header>
-  <h1 class="titulo">Porta da loja</h1>
 
-  <section class="cartao porta-cartao" aria-label="Porta da Makro Boutique">
-    <svg id="porta" viewBox="0 0 400 250" role="img" aria-label="Fachada da loja com porta de enrolar">
-      <defs>
-        <clipPath id="vao"><rect x="112" y="74" width="176" height="146"/></clipPath>
-        <linearGradient id="toldo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--toldo-a)"/><stop offset="1" stop-color="var(--toldo-b)"/></linearGradient>
-        <pattern id="ripas" width="10" height="9" patternUnits="userSpaceOnUse">
-          <rect width="10" height="9" fill="var(--lamina)"/><rect y="7.4" width="10" height="1.6" fill="var(--lamina-sombra)"/>
-        </pattern>
-        <pattern id="incerta" width="10" height="9" patternUnits="userSpaceOnUse">
-          <rect width="10" height="9" fill="var(--lamina)" opacity=".6"/><rect y="7.4" width="10" height="1.6" fill="var(--lamina-sombra)" opacity=".7"/>
-        </pattern>
-      </defs>
-      <!-- fachada -->
-      <rect x="0" y="0" width="400" height="250" fill="var(--fachada)"/>
-      <rect x="0" y="0" width="400" height="14" fill="var(--fachada-clara)"/>
-      <rect x="0" y="14" width="400" height="3" fill="var(--ouro)" opacity=".7"/>
-      <rect x="86" y="22" width="228" height="198" fill="var(--fachada-escura)"/>
-      <rect x="10" y="30" width="62" height="40" class="painel"/><rect x="10" y="78" width="62" height="130" class="painel"/>
-      <rect x="328" y="30" width="62" height="40" class="painel"/><rect x="328" y="78" width="62" height="130" class="painel"/>
-      <!-- vitrine -->
-      <rect x="14" y="82" width="54" height="104" fill="var(--vitrine)"/>
-      <ellipse cx="41" cy="98" rx="11" ry="4" fill="#fff" opacity=".8"/>
-      <g stroke="#6b5a45" stroke-width="1.4" fill="none" opacity=".85">
-        <path d="M24 122v38M24 122l-7 6M24 122l7 6"/><path d="M41 122v38M41 122l-7 6M41 122l7 6"/><path d="M58 122v38M58 122l-7 6M58 122l7 6"/>
-      </g>
-      <g opacity=".9"><rect x="19" y="128" width="10" height="30" fill="#e9dcc6"/><rect x="36" y="128" width="10" height="30" fill="#d8c3a1"/><rect x="53" y="128" width="10" height="30" fill="#efe6d6"/></g>
-      <!-- vão e lâmina -->
-      <rect x="112" y="74" width="176" height="146" class="vao"/>
-      <g clip-path="url(#vao)">
-        <rect id="lamina" x="112" y="74" width="176" height="146" fill="url(#ripas)"/>
-        <rect id="barra" x="112" y="212" width="176" height="8" class="barra"/>
-      </g>
-      <text id="interrog" x="200" y="160" text-anchor="middle" class="interrog" hidden>?</text>
-      <!-- toldo -->
-      <path d="M92 40 H308 L300 74 H100 Z" fill="url(#toldo)"/><rect x="100" y="72" width="200" height="3" fill="var(--ouro)" opacity=".6"/>
-      <!-- arandelas -->
-      <rect x="95" y="104" width="8" height="18" rx="2" fill="var(--ouro)"/><rect x="297" y="104" width="8" height="18" rx="2" fill="var(--ouro)"/>
-      <!-- vasos -->
-      <g><path d="M55 190h26l-3 30H58z" fill="#d9cdb8"/><g fill="#7d8a5d"><ellipse cx="62" cy="168" rx="5" ry="11" transform="rotate(-25 62 168)"/><ellipse cx="72" cy="160" rx="5" ry="12"/><ellipse cx="82" cy="170" rx="5" ry="11" transform="rotate(25 82 170)"/><ellipse cx="68" cy="178" rx="4" ry="9" transform="rotate(-10 68 178)"/><ellipse cx="78" cy="180" rx="4" ry="9" transform="rotate(12 78 180)"/></g></g>
-      <g><path d="M319 190h26l-3 30h-20z" fill="#d9cdb8"/><g fill="#7d8a5d"><ellipse cx="326" cy="170" rx="5" ry="11" transform="rotate(-25 326 170)"/><ellipse cx="336" cy="160" rx="5" ry="12"/><ellipse cx="346" cy="168" rx="5" ry="11" transform="rotate(25 346 168)"/><ellipse cx="331" cy="180" rx="4" ry="9" transform="rotate(-10 331 180)"/><ellipse cx="342" cy="180" rx="4" ry="9" transform="rotate(12 342 180)"/></g></g>
-      <!-- calçada -->
-      <rect x="0" y="220" width="400" height="30" fill="var(--calcada)"/>
-      <path d="M0 232H400M110 220l-18 30M200 220v30M290 220l18 30" stroke="var(--calcada-linha)" stroke-width="1" fill="none"/>
-    </svg>
+    <section class="estado" aria-live="polite">
+      <div id="rotulo" class="rotulo">—</div>
+      <div id="sub" class="sub"></div>
+      <div id="aviso" class="aviso" hidden></div>
+      <div id="nota" class="nota"></div>
+    </section>
 
-    <div class="status-linha"><span id="ponto" class="ponto"></span><span id="conTxt">Conectando…</span></div>
-    <div id="rotulo" class="rotulo">—</div>
-    <div id="sub" class="sub"></div>
-    <div id="pctTxt" class="pct-linha"></div>
-    <div id="aviso" class="aviso" hidden></div>
-    <div id="atualizadoTxt" class="atualizado"></div>
-  </section>
+    <div class="comandos" id="barra-cmd" role="group" aria-label="Comandos da porta">
+      <button class="cmd abrir" data-cmd="abrir"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>Abrir</span></button>
+      <button class="cmd parar" data-cmd="parar"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2.5"/></svg><span>Parar</span></button>
+      <button class="cmd fechar" data-cmd="fechar"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg><span>Fechar</span></button>
+    </div>
 
-  <div class="secao"><h2>Comandos</h2><span class="fio"></span></div>
-  <div class="comandos" id="barra-cmd" role="group" aria-label="Comandos da porta">
-    <button class="cmd abrir" data-cmd="abrir"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span>Abrir</span></button>
-    <button class="cmd parar" data-cmd="parar"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg><span>Parar</span></button>
-    <button class="cmd fechar" data-cmd="fechar"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg><span>Fechar</span></button>
+    <nav class="atalhos" aria-label="Atalhos">
+      <button id="btnAgenda"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span>Agenda</span></button>
+      <i class="sep"></i>
+      <button id="btnAlertas"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.6 2H4.4L6 16z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/></svg><span>Alertas</span><b id="pontoAlerta" class="ponto-alerta" hidden></b></button>
+    </nav>
   </div>
-  <p id="nota" class="nota" aria-live="polite"></p>
+</main>
 
-  <div class="secao"><h2>Agenda semanal</h2><span class="fio"></span><button id="agNova" class="mais" aria-label="Nova regra" hidden>+</button></div>
-  <section class="cartao agenda" id="blocoAgenda" aria-label="Agenda semanal">
+<section id="folhaAgenda" class="folha" hidden aria-label="Agenda semanal">
+  <header class="folha-topo">
+    <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
+    <h2>Agenda semanal</h2>
+    <button id="agNova" class="mais" aria-label="Nova regra" hidden>+</button>
+  </header>
+  <div class="folha-corpo">
+    <section class="cartao agenda" id="blocoAgenda">
     <p id="agProxima" class="ag-prox"></p>
     <p id="agAviso" class="ag-aviso" hidden></p>
     <div id="agGrade" class="ag-grade"></div>
@@ -133,17 +139,46 @@
     <p class="dica">Para trocar um horário: toque na regra (ou em Editar), mude e salve. Para apagar: toque em Excluir.</p>
     <p id="agSomenteLeitura" class="dica" hidden>Só administradores editam a agenda.</p>
     <p class="dica">Horário de Candeias/BA. Cada regra repete toda semana nos dias marcados e dá um único pulso, como apertar o botão. Parar no meio ou mexer na porta à mão não faz a agenda tentar de novo: ela só volta no próximo horário. Se o ESP32 estiver sem comunicação na hora marcada, o comando é descartado e fica registrado na atividade.</p>
-  </section>
+    </section>
+  </div>
+</section>
 
-  <div class="secao"><h2>Atividade recente</h2><span class="fio"></span></div>
-  <ul id="historico" class="historico"><li class="vazio">Sem eventos ainda.</li></ul>
+<section id="folhaAlertas" class="folha" hidden aria-label="Alertas">
+  <header class="folha-topo">
+    <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
+    <h2>Alertas</h2>
+    <span></span>
+  </header>
+  <div class="folha-corpo">
+    <section class="cartao" id="blocoPush">
+      <button id="btnPush" class="secundario">Ativar notificações</button>
+      <p id="pushMsg" class="dica"></p>
+    </section>
+    <h3 class="subtitulo">Atividade recente</h3>
+    <ul id="historico" class="historico"><li class="vazio">Sem eventos ainda.</li></ul>
+  </div>
+</section>
 
-  <section class="cartao aux" id="blocoPush">
-    <button id="btnPush" class="secundario">Ativar notificações</button>
-    <p id="pushMsg" class="dica"></p>
-  </section>
-
-  <section class="cartao aux" id="blocoSim" hidden>
+<section id="folhaAjustes" class="folha" hidden aria-label="Ajustes">
+  <header class="folha-topo">
+    <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
+    <h2>Ajustes</h2>
+    <span></span>
+  </header>
+  <div class="folha-corpo">
+    <section class="cartao">
+      <p id="menuUsuario" class="dica" style="margin-top:0"></p>
+      <label>Tempo para abrir (s) <input id="cfgAbrir" type="number" min="3" max="120" step="0.5"></label>
+      <label>Tempo para fechar (s) <input id="cfgFechar" type="number" min="3" max="120" step="0.5"></label>
+      <label>Duração do pulso (ms) <input id="cfgPulso" type="number" min="100" max="2000" step="50"></label>
+      <p class="dica">Os tempos só afetam a animação. O pulso é enviado ao ESP32.</p>
+      <div class="grupo-btn">
+        <button class="secundario" id="cfgSalvar">Salvar</button>
+        <button class="link" id="btnTrocarModo" type="button"></button>
+        <button class="link" id="btnSair" type="button">Sair da conta</button>
+      </div>
+    </section>
+    <section class="cartao" id="blocoSim" hidden>
     <h2 class="peq">Bancada (simulação)</h2>
     <label class="linha"><input type="checkbox" id="simAuto"> Sensores seguem a porta virtual</label>
     <label class="linha"><input type="checkbox" id="simAberto"> Sensor de porta ABERTA</label>
@@ -158,9 +193,9 @@
     <button class="mini" id="simReiniciar">Reiniciar ESP32</button>
     <div class="grupo-btn"><button class="mini" id="simAvancar">Avançar relógio até a próxima regra da agenda</button></div>
     <p class="dica" id="simRelogio"></p>
-  </section>
-
-</main>
+    </section>
+  </div>
+</section>
 
 <div id="telaRegra" class="tela-regra" hidden role="dialog" aria-modal="true" aria-label="Regra da agenda">
   <header class="tela-topo">
@@ -198,23 +233,6 @@
   </div>
   <button id="regraExcluir" class="tela-excluir" hidden>Excluir regra</button>
 </div>
-
-<dialog id="menu">
-  <form method="dialog">
-    <h2>Ajustes</h2>
-    <p id="menuUsuario" class="dica"></p>
-    <label>Tempo para abrir (s) <input id="cfgAbrir" type="number" min="3" max="120" step="0.5"></label>
-    <label>Tempo para fechar (s) <input id="cfgFechar" type="number" min="3" max="120" step="0.5"></label>
-    <label>Duração do pulso (ms) <input id="cfgPulso" type="number" min="100" max="2000" step="50"></label>
-    <p class="dica">Os tempos só afetam a animação. O pulso é enviado ao ESP32.</p>
-    <div class="grupo-btn">
-      <button class="secundario" value="salvar" id="cfgSalvar">Salvar</button>
-      <button class="link" id="btnTrocarModo" type="button"></button>
-      <button class="link" id="btnSair" type="button">Sair da conta</button>
-      <button class="link" value="fechar">Fechar</button>
-    </div>
-  </form>
-</dialog>
 
 <script src="config.js"></script>
 <script type="module" src="app.js"></script>

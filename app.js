@@ -7,7 +7,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v8';
+export const VERSAO_APP = 'v9';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -92,15 +92,13 @@ function conferirComando() {
 function retorno(texto, erro = false, duracao = 0) { msgRetorno = { texto, erro, ate: duracao ? Date.now() + duracao : 0 }; render(); }
 
 // ---------- desenho ----------
-const ALTURA_VAO = 146, TOPO_VAO = 74;
-function desenharPorta(pct, naoConfirmado) {
-  const p = pct == null ? 0 : pct;   // desconhecida: lâmina esmaecida, com "?"
-  const h = Math.max(0, (1 - p / 100) * ALTURA_VAO);
-  $('lamina').setAttribute('height', h);
-  $('barra').setAttribute('y', TOPO_VAO + h - 8);
-  $('barra').style.display = h < 2 ? 'none' : '';
-  $('porta').classList.toggle('nao-confirmado', naoConfirmado || pct == null);
-  $('interrog').toggleAttribute('hidden', pct != null);   // SVG não tem .hidden
+// Só a lâmina se move: sobe e some atrás da caixa ao abrir, desce ao fechar. Caixa e guias ficam fixas.
+const ALTURA_VAO = 192;
+function desenharPorta(pct, { naoConfirmado = false, desconhecida = false } = {}) {
+  const p = pct == null ? 0 : pct;
+  $('lamina').setAttribute('transform', `translate(0 ${(-(p / 100) * ALTURA_VAO).toFixed(2)})`);
+  $('porta').classList.toggle('nao-confirmado', naoConfirmado || desconhecida);
+  $('porta').classList.toggle('desconhecida', desconhecida);
 }
 
 let ultimaKey = '';
@@ -109,37 +107,47 @@ function render() {
   const cfg = { ...CFG_PADRAO, ...snap.cfg };
   const t = agora();
   const v = derivar(snap.est, cfg, t);
-  const sem = v.comunicacao === 'sem_comunicacao' || falhaRede;
+  const semSinal = v.comunicacao === 'sem_comunicacao';
+  const sem = semSinal || falhaRede;
   const u = snap.est.ultimo;
 
-  // porta
+  // --- desenho ---
   let pct = v.pct, naoConf = v.estimado || !!v.aviso;
-  if (v.comunicacao === 'sem_comunicacao') { pct = null; naoConf = true; }   // sem sinal: posição desconhecida, "?"
-  desenharPorta(pct, naoConf);
-  if (v.comunicacao === 'sem_comunicacao') $('pctTxt').textContent = '';
-  else if (v.posicao === 'falha') $('pctTxt').textContent = 'Leitura inválida';
-  else if (pct == null) $('pctTxt').textContent = 'Posição desconhecida (sem percentual)';
-  else if (v.estimado) $('pctTxt').textContent = `≈ ${Math.round(pct)}% aberta — estimado, não confirmado`;
-  else $('pctTxt').textContent = `${Math.round(pct)}% aberta — confirmado pelo sensor`;
+  if (semSinal) { pct = u ? (u.pos === 'aberta' ? 100 : 0) : 0; naoConf = true; }   // última posição confirmada, esmaecida
+  desenharPorta(pct, { naoConfirmado: naoConf, desconhecida: semSinal || v.posicao === 'falha' || (pct == null) });
 
-  // estado
-  const semSinal = v.comunicacao === 'sem_comunicacao';
-  $('rotulo').textContent = semSinal ? 'Posição desconhecida' : v.rotulo;
-  $('rotulo').className = 'rotulo ' + (v.posicao === 'falha' && !semSinal ? 'erro' : v.posicao === 'entre' && !semSinal ? 'alerta' : 'ok');
-  let sub = '';
-  if (semSinal) sub = u ? `Última confirmação · ${u.pos === 'aberta' ? 'Aberta' : 'Fechada'} às ${horaCurta(u.em)}` : 'Sem confirmação anterior';
-  else if (v.movimento) sub = (v.movimento === 'abrindo' ? 'Abrindo' : 'Fechando') + ' — movimento estimado';
-  else if (v.posicao === 'entre' && v.estimado) sub = 'Parada — posição estimada, sem confirmação do sensor';
-  else if (v.posicao === 'entre') sub = 'Movimento externo ou desconhecido';
-  else if (v.posicao === 'falha') sub = 'Os dois fins de curso estão ativos ao mesmo tempo';
-  else sub = 'Confirmado pelo sensor';
+  // --- selo sob a porta: confirmado x estimado ---
+  const selo = $('selo');
+  selo.className = 'selo';
+  if (semSinal) $('pctTxt').textContent = '';
+  else if (v.posicao === 'falha') $('pctTxt').textContent = 'Leitura inválida';
+  else if (v.estimado) { selo.classList.add('estimado'); $('pctTxt').textContent = `≈ ${Math.round(pct)}% aberta · estimado`; }
+  else if (pct == null) { selo.classList.add('estimado'); $('pctTxt').textContent = 'Posição desconhecida · sem estimativa'; }
+  else $('pctTxt').textContent = '';            // confirmado: o texto "Confirmada pelo sensor" já aparece abaixo
+
+  // --- textos: "aberta/fechada" só com o fim de curso ---
+  let rotulo, classe = '', sub = '';
+  if (semSinal) {
+    rotulo = 'Posição desconhecida';
+    sub = u ? `Última confirmação · ${u.pos === 'aberta' ? 'Aberta' : 'Fechada'} às ${horaCurta(u.em)}` : 'Ainda sem confirmação';
+  } else if (v.posicao === 'falha') {
+    rotulo = 'Falha nos sensores'; classe = 'erro'; sub = 'Os dois fins de curso estão ativos ao mesmo tempo';
+  } else if (v.movimento) {
+    rotulo = v.movimento === 'abrindo' ? 'Abrindo' : 'Fechando'; sub = 'Movimento estimado · aguardando o sensor';
+  } else if (v.posicao === 'entre') {
+    rotulo = 'Entre os limites';
+    sub = v.estimado ? 'Parada · posição estimada, sem confirmação do sensor' : 'Movimento externo ou desconhecido';
+  } else {
+    rotulo = v.rotulo; sub = 'Confirmada pelo sensor';
+  }
+  $('rotulo').textContent = rotulo; $('rotulo').className = 'rotulo ' + classe;
   $('sub').textContent = sub;
   $('aviso').hidden = !v.aviso || semSinal; $('aviso').textContent = v.aviso || '';
 
-  // conexão + comandos
+  // --- conexão e comandos ---
   $('ponto').className = 'ponto ' + (sem ? 'off' : 'on');
-  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : semSinal ? 'Sem comunicação' : 'Conectado ao ESP32';
-  $('atualizadoTxt').textContent = snap.est.visto ? 'Última atualização ' + horaComSegundos(snap.est.visto) : 'Sem atualização ainda';
+  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : semSinal ? 'Sem comunicação' : 'Conectada';
+  $('atualizadoTxt').textContent = snap.est.visto ? '· ' + horaComSegundos(snap.est.visto) : '';
   document.querySelectorAll('button[data-cmd]').forEach(b => { b.disabled = sem; });
 
   if (msgRetorno.ate && Date.now() > msgRetorno.ate) msgRetorno = { texto: '', erro: false, ate: 0 };
@@ -147,9 +155,11 @@ function render() {
   if (msgRetorno.texto) { nota.textContent = msgRetorno.texto; nota.className = 'nota' + (msgRetorno.erro ? ' erro' : ''); }
   else { nota.textContent = sem ? 'Comandos disponíveis ao reconectar.' : ''; nota.className = 'nota'; }
 
-  // atividade (só redesenha se mudou)
+  // --- atividade (só redesenha se mudou) + ponto vermelho em Alertas ---
   const key = snap.eventos.map(e => e.id).join(',');
   if (key !== ultimaKey) { ultimaKey = key; desenharHistorico(snap.eventos); }
+  const visto = +(ler('alertaVisto') || 0);
+  $('pontoAlerta').hidden = !snap.eventos.some(e => e.tipo === 'agenda_falha' && e.id > visto);
 
   renderAgenda(t);
   agendarQuadro(!!v.movimento);   // animação suave só enquanto há movimento
@@ -408,18 +418,30 @@ $('formLogin').addEventListener('submit', async ev => {
   catch (e) { $('erroLogin').textContent = e.message; }
 });
 $('irSim').addEventListener('click', entrarSimulacao);
+// ---------- folhas (Agenda, Alertas, Ajustes) ----------
+function abrirFolha(id) {
+  document.querySelectorAll('.folha').forEach(f => { f.hidden = f.id !== id; });
+  document.body.style.overflow = 'hidden';
+  if (id === 'folhaAlertas' && snap) { const m = Math.max(0, ...snap.eventos.map(e => e.id)); salvar('alertaVisto', String(m)); $('pontoAlerta').hidden = true; }
+  agKey = ''; if (snap) renderAgenda(agora());
+}
+function fecharFolhas() { document.querySelectorAll('.folha').forEach(f => { f.hidden = true; }); document.body.style.overflow = ''; }
+document.querySelectorAll('[data-voltar]').forEach(b => b.addEventListener('click', fecharFolhas));
+$('btnAgenda').addEventListener('click', () => abrirFolha('folhaAgenda'));
+$('btnAlertas').addEventListener('click', () => abrirFolha('folhaAlertas'));
 $('btnMenu').addEventListener('click', () => {
   const c = { ...CFG_PADRAO, ...(snap?.cfg || {}) };
   $('cfgAbrir').value = c.tempo_abrir_s; $('cfgFechar').value = c.tempo_fechar_s; $('cfgPulso').value = c.pulso_ms;
-  $('menu').showModal();
+  abrirFolha('folhaAjustes');
 });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('telaRegra').hidden) fecharFolhas(); });
 $('cfgSalvar').addEventListener('click', async () => {
   try {
     await backend.configurar({ tempo_abrir_s: +$('cfgAbrir').value, tempo_fechar_s: +$('cfgFechar').value, pulso_ms: +$('cfgPulso').value });
-    poll();
+    poll(); fecharFolhas();
   } catch (e) { retorno('Não foi possível salvar: ' + e.message, true, 6000); }
 });
-$('btnSair').addEventListener('click', async () => { await backend.sair(); $('menu').close(); location.reload(); });
+$('btnSair').addEventListener('click', async () => { await backend.sair(); location.reload(); });
 $('btnTrocarModo').addEventListener('click', () => {
   salvar('modo', backend.modo === 'simulacao' ? 'real' : 'sim'); location.search = ''; location.reload();
 });
