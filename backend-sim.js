@@ -15,6 +15,20 @@ export function criarSimulacao() {
     ack: [], boot: true,
     ultimoPulso: null,
   };
+  // ---- Wi-Fi da placa (simulado; o ESP32 de verdade vem na próxima etapa) ----
+  const wifi = {
+    rede: 'Loja_Makro',      // rede em que a placa está conectada agora (começa conectada, como em uso normal)
+    ultimaRede: 'Loja_Makro',        // última rede salva na placa
+    modoConfig: false,       // placa emitindo a rede "Porta-Config"
+    iphone: 'casa',          // 'casa' | 'Porta-Config' (Wi-Fi em que o iPhone está)
+    redes: [                 // redes fictícias 2,4 GHz (5 GHz o ESP32 não enxerga, então nem aparecem)
+      { ssid: 'Loja_Makro', sinal: 3, senha: 'makro1234' },
+      { ssid: 'Loja_Makro_Novo', sinal: 3, senha: 'novo12345' },
+      { ssid: 'Makro_Visitantes', sinal: 2, senha: 'visita123' },
+      { ssid: 'Vizinho_2G', sinal: 1, senha: 'vizinho99' },
+      { ssid: 'Cafe_da_Esquina', sinal: 2, senha: null },
+    ],
+  };
   const ouvintes = new Set();
   const avisar = e => ouvintes.forEach(f => f(e));
   let vistos = 0;
@@ -65,6 +79,7 @@ export function criarSimulacao() {
         cfg: S.cfg,
         agenda: S.agenda.map(r => ({ id: r.id, acao: r.acao, dias: [...r.dias], hora: r.hora, ativa: r.ativa })),
         agendaCfg: { ...S.agendaCfg },
+        wifi: { rede: wifi.rede, ultimaRede: wifi.ultimaRede },
         eventos: S.eventos.slice(-40).reverse().map(e => ({ ...e })),
         cmds: S.cmds.slice(-8).map(c => ({ ...c })),
       };
@@ -76,6 +91,39 @@ export function criarSimulacao() {
     async agendaExcluir(id) { agendaExcluir(S, id); },
     async agendaConfig(c) { agendaConfigurar(S, c); },
     onChegada(f) { ouvintes.add(f); return () => ouvintes.delete(f); },
+    // --- Wi-Fi da placa (simulação do que o ESP32 fará) ---
+    wifi: {
+      estado: () => ({ rede: wifi.rede, ultimaRede: wifi.ultimaRede, modoConfig: wifi.modoConfig, iphone: wifi.iphone, placaOnline: dev.online }),
+      senhas: () => wifi.redes.map(r => ({ ssid: r.ssid, senha: r.senha })),
+      // cenários de teste
+      cenario(n) {
+        wifi.iphone = 'casa';
+        if (n === 1 || n === 2) { wifi.rede = null; wifi.ultimaRede = null; wifi.modoConfig = true; S.est.visto = null; S.est.ultimo = null; }   // placa nunca configurada: abre a Porta-Config sozinha
+        if (n === 3) { wifi.rede = null; wifi.ultimaRede = 'Loja_Makro'; wifi.modoConfig = false; S.est.visto = agoraSim() - 60000; }                                              // tinha rede, o roteador mudou: placa offline
+        dev.online = false;
+      },
+      conectarIphone() {                      // iPhone entra na Porta-Config (só existe se a placa a estiver emitindo)
+        if (!wifi.modoConfig) return { ok: false, motivo: 'sem-rede' };
+        wifi.iphone = 'Porta-Config'; return { ok: true };
+      },
+      voltarParaCasa() { wifi.iphone = 'casa'; },
+      botaoConfig() { wifi.modoConfig = true; dev.online = false; },           // botão físico dedicado, 5 s
+      pedirModoConfig() {                      // com a placa online, o app pede para abrir a Porta-Config
+        return new Promise(res => setTimeout(() => { wifi.modoConfig = true; dev.online = false; res(); }, 2500));
+      },
+      paginaAlcancavel: () => wifi.iphone === 'Porta-Config' && wifi.modoConfig,
+      escanear: () => wifi.redes.map(r => ({ ssid: r.ssid, sinal: r.sinal, aberta: !r.senha })),
+      tentar(ssid, senha) {                    // a placa tenta entrar na rede; só salva se conseguir
+        return new Promise(res => setTimeout(() => {
+          const r = wifi.redes.find(x => x.ssid === ssid);
+          if (!r) return res({ ok: false, motivo: 'nao-encontrada' });
+          if (r.senha && senha !== r.senha) return res({ ok: false, motivo: 'senha' });
+          wifi.rede = wifi.ultimaRede = ssid; wifi.modoConfig = false; wifi.iphone = 'casa';
+          setTimeout(() => { dev.online = true; dev.boot = true; }, 6000);          // a placa liga no roteador e só depois volta a falar com a nuvem
+          res({ ok: true, rede: ssid });
+        }, 3500));
+      },
+    },
     // --- controles de bancada (só existem na simulação) ---
     bancada: {
       estado: () => ({ ...dev }),

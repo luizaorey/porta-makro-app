@@ -159,6 +159,26 @@
   </div>
 </section>
 
+<section id="folhaWifi" class="folha" hidden aria-label="Configurar Wi-Fi">
+  <header class="folha-topo">
+    <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
+    <h2>Configurar Wi‑Fi</h2>
+    <span></span>
+  </header>
+  <div class="folha-corpo" id="wifiCorpo"></div>
+</section>
+
+<!-- Simulação do navegador do iPhone abrindo a página servida pelo ESP32 (192.168.4.1) -->
+<div id="navSim" class="nav-sim" hidden role="dialog" aria-modal="true" aria-label="Navegador do iPhone (simulado)">
+  <div class="nav-barra">
+    <button id="navFechar" class="nav-ok-btn">Concluído</button>
+    <div class="nav-url"><span id="navUrl">192.168.4.1</span></div>
+    <button id="navRecarregar" class="nav-ok-btn" aria-label="Recarregar">↻</button>
+  </div>
+  <div class="nav-faixa">Simulação do navegador do iPhone · a página real é servida pela placa</div>
+  <div class="nav-pagina"><div id="navCorpo" class="nav-corpo"></div></div>
+</div>
+
 <section id="folhaAjustes" class="folha" hidden aria-label="Ajustes">
   <header class="folha-topo">
     <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
@@ -166,7 +186,8 @@
     <span></span>
   </header>
   <div class="folha-corpo">
-    <section class="cartao">
+    <button id="btnWifi" class="linha-cfg" type="button"><span>Configurar Wi‑Fi</span><b></b><i>›</i></button>
+    <section class="cartao" style="margin-top:12px">
       <p id="menuUsuario" class="dica" style="margin-top:0"></p>
       <label>Tempo para abrir (s) <input id="cfgAbrir" type="number" min="3" max="120" step="0.5"></label>
       <label>Tempo para fechar (s) <input id="cfgFechar" type="number" min="3" max="120" step="0.5"></label>

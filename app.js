@@ -1,5 +1,6 @@
 import { derivar, CFG_PADRAO, textoComando, horaCurta, proximaExecucao, rotuloDias, resumoSemana, horaRotulo, diaLocal, isoDow, NOMES_DIA, CURTO_DIA } from './logic.js';
 import { criarSimulacao } from './backend-sim.js';
+import { iniciarWifi } from './wifi-ui.js';
 
 const $ = id => document.getElementById(id);
 const CONFIG = window.PORTA_CONFIG || {};
@@ -7,7 +8,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v9';
+export const VERSAO_APP = 'v10';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -15,6 +16,8 @@ let falhaRede = false;
 let pendente = null;        // comando enviado aguardando confirmação do ESP32
 let msgRetorno = { texto: '', erro: false, ate: 0 };
 let timerPoll = null;
+let aguardandoPlaca = false;   // Wi-Fi acabou de ser configurado: espera a primeira resposta da placa
+let wifiCtl = null;
 
 const agora = () => Date.now() + offsetRelogio;
 const NOMES = { abrir: 'abertura', parar: 'parada', fechar: 'fechamento' };
@@ -50,6 +53,15 @@ function abrirApp() {
     ligarBancada();
   }
   atualizarBotaoPush();
+  wifiCtl = iniciarWifi({
+    backend: () => backend,
+    estado: () => {
+      const e = snap ? derivar(snap.est, { ...CFG_PADRAO, ...snap.cfg }, agora()) : null;
+      return { ok: !!e && e.comunicacao === 'ok' && !falhaRede, visto: snap?.est.visto || null, rede: snap?.wifi?.rede || null, ultimaRede: snap?.wifi?.ultimaRede || null, aguardando: aguardandoPlaca };
+    },
+    abrirFolha, fecharFolhas,
+    aguardando: v => { aguardandoPlaca = v; },
+  });
   poll();
 }
 
@@ -146,7 +158,8 @@ function render() {
 
   // --- conexão e comandos ---
   $('ponto').className = 'ponto ' + (sem ? 'off' : 'on');
-  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : semSinal ? 'Sem comunicação' : 'Conectada';
+  if (aguardandoPlaca && !semSinal && !falhaRede) { aguardandoPlaca = false; retorno('A placa respondeu: Wi‑Fi funcionando.', false, 7000); }   // "Conectada" só depois de uma resposta real
+  $('conTxt').textContent = falhaRede ? 'Sem internet no celular' : semSinal ? (aguardandoPlaca ? 'Sem comunicação · aguardando a placa' : 'Sem comunicação') : 'Conectada';
   $('atualizadoTxt').textContent = snap.est.visto ? '· ' + horaComSegundos(snap.est.visto) : '';
   document.querySelectorAll('button[data-cmd]').forEach(b => { b.disabled = sem; });
 
@@ -162,6 +175,7 @@ function render() {
   $('pontoAlerta').hidden = !snap.eventos.some(e => e.tipo === 'agenda_falha' && e.id > visto);
 
   renderAgenda(t);
+  wifiCtl?.atualizar();
   agendarQuadro(!!v.movimento);   // animação suave só enquanto há movimento
 }
 function horaComSegundos(ms) {
@@ -434,6 +448,7 @@ $('btnMenu').addEventListener('click', () => {
   $('cfgAbrir').value = c.tempo_abrir_s; $('cfgFechar').value = c.tempo_fechar_s; $('cfgPulso').value = c.pulso_ms;
   abrirFolha('folhaAjustes');
 });
+$('btnWifi').addEventListener('click', () => wifiCtl.abrir());
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('telaRegra').hidden) fecharFolhas(); });
 $('cfgSalvar').addEventListener('click', async () => {
   try {
