@@ -39,17 +39,11 @@ export function iniciarWifi(ctx) {
     card.append(el('p', 'dica', '“Conectada” só aparece quando a placa responde ao aplicativo. Ter Wi‑Fi na placa não basta: o app precisa conseguir falar com ela.'));
     c.append(card);
 
-    if (sim()) {
-      c.append(
-        btn('Configurar pela primeira vez', 'primario grande', () => passo1('primeira')),
-        btn('Trocar de rede', 'secundario grande', () => passo1('trocar')),
-        cartaoSimulador());
-    } else {
-      const k = el('section', 'cartao'); k.append(
-        el('p', 'dica', 'O ESP32 com configuração de Wi‑Fi chega na próxima etapa. Por enquanto o fluxo roda só no simulador.'),
-        btn('Ver o fluxo no simulador', 'link', () => { try { localStorage.setItem('modo', 'sim'); } catch {} location.search = ''; location.reload(); }));
-      c.append(k);
-    }
+    c.append(
+      btn('Configurar pela primeira vez', 'primario grande', () => passo1('primeira')),
+      btn('Trocar de rede', 'secundario grande', () => passo1('trocar')),
+    );
+    if (sim()) c.append(cartaoSimulador());
   }
 
   // ---------- passo 1: orientar ----------
@@ -67,22 +61,33 @@ export function iniciarWifi(ctx) {
       const li = passo(negrito('A placa está conectada. Peça a ela para abrir a rede temporária **Porta‑Config**:'));
       const b = btn('Pedir à placa para abrir a Porta‑Config', 'secundario', async () => {
         b.disabled = true; b.textContent = 'Pedindo à placa…';
-        await sim()?.pedirModoConfig();
-        b.textContent = 'Pronto: a Porta‑Config está ativa'; ctx.aguardando(false); passo1(m);
+        try {
+          if (sim()) await sim().pedirModoConfig(); else await ctx.backend().pedirConfig();
+          b.textContent = 'Pedido enviado: aguarde alguns segundos até a Porta‑Config aparecer';
+        } catch (e) { b.disabled = false; b.textContent = 'Não foi possível pedir à placa. Use o botão físico.'; return; }
+        ctx.aguardando(false);
       });
       li.append(el('br'), b, el('p', 'dica', 'Enquanto troca de rede, a placa fica sem falar com o app. Faça com a porta parada.'));
     } else if (m === 'trocar') {
       passo(negrito('Ative o modo de configuração: **segure o botão CONFIG da placa por 5 segundos**, até o LED piscar rápido.'));
     } else {
-      passo(negrito('Ligue a placa. Se ela ainda não tem Wi‑Fi, a rede **Porta‑Config** aparece sozinha em alguns segundos.'));
+      passo(negrito('Ligue a placa. Se ela ainda não tem Wi‑Fi, a rede protegida **Porta‑Config** aparece sozinha em alguns segundos.'));
     }
-    passo(negrito('No iPhone, abra **Ajustes › Wi‑Fi** e toque em **Porta‑Config**. Não tem senha.'));
-    passo(negrito('Volte aqui e toque em **Abrir configuração**. A página abre no navegador do iPhone e é servida pela própria placa.'));
+    passo(negrito('No iPhone, abra **Ajustes › Wi‑Fi** e toque em **Porta‑Config**. Digite a **senha de configuração da placa** (a que você definiu no firmware, em secrets.h).'));
+    passo(negrito('Volte aqui e toque em **Abrir configuração**. A página abre no navegador do iPhone e é servida pela própria placa (endereço 192.168.4.1).'));
     c.append(ol);
     c.append(el('p', 'dica', 'Normal: enquanto estiver na Porta‑Config o iPhone avisa “sem conexão com a internet”. A configuração funciona mesmo assim.'));
 
-    c.append(btn('Abrir configuração', 'primario grande', abrirNav), btn('Cancelar', 'link', home));
-    if (sim()) c.append(cartaoSimulador(true));
+    if (sim()) {
+      c.append(btn('Abrir configuração', 'primario grande', abrirNav), btn('Cancelar', 'link', home));
+      c.append(cartaoSimulador(true));
+    } else {
+      // placa real: a página é do ESP32 e abre no navegador do iPhone; o app só orienta
+      const a = btn('Abrir configuração', 'primario grande', () => { window.open('http://192.168.4.1/', '_blank'); });
+      c.append(a, el('p', 'dica', 'Se a página não abrir, digite 192.168.4.1 no Safari. O iPhone precisa estar na rede Porta‑Config.'));
+      c.append(btn('Já configurei — voltar ao app', 'secundario grande', () => { ctx.aguardando(true); ctx.fecharFolhas(); aberto = false; }));
+      c.append(btn('Cancelar', 'link', home));
+    }
   }
 
   // ---------- cartão do simulador (a "vida real" que o app não controla) ----------

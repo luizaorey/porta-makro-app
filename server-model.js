@@ -79,7 +79,7 @@ export function sincronizarDispositivo(S, { aberto, fechado, boot = false, ack =
         const tempo = (pos === 'aberta' ? S.cfg.tempo_abrir_s : S.cfg.tempo_fechar_s) * 1000;
         const exec = S.cmds.filter(c => c.status === 'executado' && !c.consumido);
         const ultMov = [...exec].reverse().find(c => c.acao !== 'parar');
-        const parouDepois = ultMov && exec.some(c => c.acao === 'parar' && c.executado > ultMov.executado);
+        const parouDepois = ultMov && exec.some(c => c.acao === 'parar' && (c.executado > ultMov.executado || (c.executado === ultMov.executado && c.id > ultMov.id)));
         let origem = 'externo', usuario = null;
         if (ultMov && ultMov.acao === dir && !parouDepois && agora - ultMov.executado <= tempo * 1.5 + REGRAS.janela_origem_extra_s * 1000) {
           origem = ultMov.origem === 'agenda' ? 'agenda' : 'app'; usuario = ultMov.usuario; ultMov.consumido = true;
@@ -90,9 +90,11 @@ export function sincronizarDispositivo(S, { aberto, fechado, boot = false, ack =
       evento(S, 'falha_sensores', agora, { msg: 'Falha nos sensores: os dois fins de curso ativos.' });
     }
   }
-  // sensor prevalece
-  if (pos === 'aberta') { prev.pct_base = 100; prev.mov_dir = null; }
-  else if (pos === 'fechada') { prev.pct_base = 0; prev.mov_dir = null; }
+  // sensor prevalece. Exceção: logo depois de um comando que SAI do extremo, o fim de curso ainda pode ficar
+  // ativo por instantes (a porta ainda não saiu do lugar): não cancela o movimento antes da folga.
+  const saindo = d => prev.mov_dir === d && agora - prev.mov_inicio < S.cfg.folga_sensor_s * 1000;
+  if (pos === 'aberta') { prev.pct_base = 100; if (!saindo('fechando')) prev.mov_dir = null; }
+  else if (pos === 'fechada') { prev.pct_base = 0; if (!saindo('abrindo')) prev.mov_dir = null; }
   else if (posAnt && (posAnt === 'aberta' || posAnt === 'fechada') && !prev.mov_dir) {
     prev.pct_base = null; // saiu de um extremo sem comando nosso: movimento desconhecido
   }

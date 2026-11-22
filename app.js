@@ -8,7 +8,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v10';
+export const VERSAO_APP = 'v11';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -196,7 +196,8 @@ function desenharHistorico(evs) {
     const w = document.createElement('div'); w.className = 'quando';
     const a = document.createElement('div'); a.className = 'o-que';
     const q = document.createElement('div'); q.className = 'quem';
-    const origemTxt = e.origem === 'agenda' ? 'Agenda semanal' : e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo';
+    const simTag = backend.modo === 'simulacao' ? ' · simulado' : '';
+    const origemTxt = (e.origem === 'agenda' ? 'Agenda semanal' : e.origem === 'app' ? `Comando de ${e.usuario}` : 'Acionamento externo') + simTag;
     if (e.tipo === 'chegada_aberta') { a.textContent = 'Abertura confirmada'; q.textContent = origemTxt; }
     else if (e.tipo === 'chegada_fechada') { a.textContent = 'Fechamento confirmado'; q.textContent = origemTxt; }
     else if (e.tipo === 'comando') { a.textContent = e.msg; q.textContent = e.origem === 'agenda' ? 'Agenda semanal' : `Enviado por ${e.usuario}`; }
@@ -215,7 +216,7 @@ function desenharHistorico(evs) {
 function notificarLocal(e) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const txt = e.tipo === 'chegada_aberta' ? `A porta abriu completamente às ${horaCurta(e.em)}.` : `A porta fechou completamente às ${horaCurta(e.em)}.`;
-  new Notification('Makro Boutique', { body: txt, tag: 'porta-' + e.tipo });
+  new Notification('SIMULADO · Makro Boutique', { body: '(aviso simulado) ' + txt, tag: 'porta-sim-' + e.tipo });
 }
 async function atualizarBotaoPush() {
   const b = $('btnPush'), m = $('pushMsg');

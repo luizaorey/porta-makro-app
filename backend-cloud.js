@@ -41,6 +41,7 @@ export async function criarNuvem(cfg) {
         agora: paraMs(data.agora),
         est: paraEstado(data.estado),
         cfg: data.config,
+        wifi: data.wifi || null,
         agenda: data.agenda || [],
         agendaCfg: { habilitada: !!data.agenda_cfg?.habilitada, fecharLiberado: !!data.agenda_cfg?.fechar_liberado },
         eventos: (data.eventos || []).map(e => ({ ...e, em: paraMs(e.em) })),
@@ -68,6 +69,12 @@ export async function criarNuvem(cfg) {
     async agendaConfig({ habilitada, fecharLiberado }) {
       const { error } = await sb.rpc('porta_agenda_config', { p_habilitada: habilitada ?? null, p_fechar_liberado: fecharLiberado ?? null });
       if (error) throw new Error(error.message);
+    },
+
+    async pedirConfig() {
+      const { data, error } = await sb.rpc('porta_pedir_config');
+      if (error) throw new Error(error.message.includes('sem_comunicacao') ? 'sem_comunicacao' : error.message);
+      return data;
     },
 
     // --- notificações push ---
