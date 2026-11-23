@@ -63,7 +63,7 @@ export function criarSimulacao() {
   function notificarNovos() {
     while (vistos < S.eventos.length) {
       const e = S.eventos[vistos++];
-      if (e.tipo === 'chegada_aberta' || e.tipo === 'chegada_fechada') avisar(e);
+      if (e.tipo === 'chegada_aberta' || e.tipo === 'chegada_fechada' || (e.tipo === 'comando' && ['abrir', 'fechar', 'parar'].includes(e.acao))) avisar(e);
     }
   }
   let ultimo = Date.now();

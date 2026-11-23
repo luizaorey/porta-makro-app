@@ -9,7 +9,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v13';
+export const VERSAO_APP = 'v14';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -224,9 +224,15 @@ function desenharHistorico(evs) {
 // ---------- notificações ----------
 function notificarLocal(e) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  const txt = e.tipo === 'chegada_aberta' ? `A porta abriu completamente às ${horaCurta(e.em)}.` : `A porta fechou completamente às ${horaCurta(e.em)}.`;
-  const quem = e.origem === 'app' ? ` Comando de ${e.usuario}.` : e.origem === 'agenda' ? ' Agenda semanal.' : ' Acionamento externo.';
-  new Notification('SIMULADO · Makro Boutique', { body: '(aviso simulado) ' + txt + quem, tag: 'porta-sim-' + e.tipo });
+  const quem = e.origem === 'agenda' ? 'Agenda semanal' : e.origem === 'app' ? `comando de ${e.usuario}` : 'Acionamento externo';
+  let txt;
+  if (e.tipo === 'comando') {   // 1º aviso: a placa executou o comando (ainda não é confirmação de chegada)
+    txt = e.acao === 'abrir' ? `Abrindo a porta — ${quem}. Aguardando o fim de curso.` : e.acao === 'fechar' ? `Fechando a porta — ${quem}. Aguardando o fim de curso.` : `Parada enviada à porta — ${quem}.`;
+  } else {      // 2º aviso: o fim de curso confirmou
+    const q2 = e.origem === 'agenda' ? ' Agenda semanal.' : e.origem === 'app' ? ` Comando de ${e.usuario}.` : ' Acionamento externo.';
+    txt = (e.tipo === 'chegada_aberta' ? `A porta abriu completamente às ${horaCurta(e.em)}.` : `A porta fechou completamente às ${horaCurta(e.em)}.`) + q2;
+  }
+  new Notification('SIMULADO · Makro Boutique', { body: '(aviso simulado) ' + txt, tag: 'porta-sim-' + e.tipo + '-' + (e.acao || '') });
 }
 async function atualizarBotaoPush() {
   const b = $('btnPush'), m = $('pushMsg');
