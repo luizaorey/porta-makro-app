@@ -29,6 +29,9 @@ export function criarSimulacao() {
       { ssid: 'Cafe_da_Esquina', sinal: 2, senha: null },
     ],
   };
+  // pessoas (simulado, só em memória)
+  let proxPessoa = 2;
+  const pessoas = [{ user_id: 'eu', nome: 'Você (simulação)', email: 'voce@exemplo.com', papel: 'admin', voce: true }];
   const ouvintes = new Set();
   const avisar = e => ouvintes.forEach(f => f(e));
   let vistos = 0;
@@ -84,6 +87,16 @@ export function criarSimulacao() {
         cmds: S.cmds.slice(-8).map(c => ({ ...c })),
       };
     },
+    async pessoas() { return pessoas.map(p => ({ ...p })); },
+    async pessoaCriar(p) {
+      if ((p.senha || '').length < 8) throw new Error('A senha precisa ter de 8 a 72 caracteres.');
+      if (pessoas.some(x => x.email === p.email)) throw new Error('Esse e-mail já tem cadastro.');
+      pessoas.push({ user_id: 'p' + proxPessoa++, nome: p.nome, email: p.email, papel: p.papel === 'admin' ? 'admin' : 'operador', voce: false }); return { ok: true };
+    },
+    async pessoaRemover(id) { const i = pessoas.findIndex(p => p.user_id === id); if (pessoas[i]?.voce) throw new Error('Você não pode remover o seu próprio acesso.'); if (i >= 0) pessoas.splice(i, 1); },
+    async pessoaSenha(id, senha) { if (senha.length < 8) throw new Error('A senha precisa ter de 8 a 72 caracteres.'); },
+    async pessoaPapel(id, papel) { const p = pessoas.find(x => x.user_id === id); if (p) p.papel = papel; },
+    async trocarMinhaSenha(nova) { if (nova.length < 8) throw new Error('A senha precisa ter pelo menos 8 caracteres.'); },
     async comando(acao) { return enviarComando(S, acao, 'Você (simulação)', agoraSim()); },
     configurar(parcial) { Object.assign(S.cfg, parcial); },
     async agendaSalvar(r) { return agendaSalvar(S, r, agoraSim()); },

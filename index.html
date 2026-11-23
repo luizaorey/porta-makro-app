@@ -179,6 +179,31 @@
   <div class="nav-pagina"><div id="navCorpo" class="nav-corpo"></div></div>
 </div>
 
+<div id="telaPessoa" class="tela-regra" hidden role="dialog" aria-modal="true" aria-label="Pessoa com acesso">
+  <header class="tela-topo">
+    <button id="pessoaCancelar" class="tela-voltar" aria-label="Voltar">←</button>
+    <h3 id="pessoaTitulo">Adicionar pessoa</h3>
+    <button id="pessoaSalvar" class="tela-salvar">Salvar</button>
+  </header>
+  <div class="tela-corpo">
+    <div id="pessoaDados">
+      <label>Nome (aparece nos avisos)<input id="pessoaNome" type="text" maxlength="40" autocomplete="off" placeholder="Ex.: Maria"></label>
+      <label>E-mail (é o login)<input id="pessoaEmail" type="email" autocomplete="off" autocapitalize="off" placeholder="maria@exemplo.com"></label>
+    </div>
+    <label><span id="pessoaSenhaTxt">Senha (mínimo 8 caracteres)</span><input id="pessoaSenha" type="password" autocomplete="new-password" autocapitalize="off"></label>
+    <label class="linha"><input type="checkbox" id="pessoaMostrar"> Mostrar senha</label>
+    <div id="pessoaPapelBox">
+      <p class="rotulo-campo" style="margin:14px 0 6px;font-size:.85rem;font-weight:600;color:var(--txt-2)">Tipo de acesso</p>
+      <div class="seg" id="segPapel">
+        <button type="button" class="seg-btn abrir" data-papel="operador" aria-pressed="true">Operador</button>
+        <button type="button" class="seg-btn fechar" data-papel="admin" aria-pressed="false">Mestre</button>
+      </div>
+      <p class="dica"><b>Operador:</b> abre, para, fecha e vê o histórico. <b>Mestre:</b> também mexe na agenda, no Wi‑Fi, nos ajustes e nas pessoas.</p>
+    </div>
+    <p id="pessoaErro" class="erro" role="alert"></p>
+  </div>
+</div>
+
 <section id="folhaAjustes" class="folha" hidden aria-label="Ajustes">
   <header class="folha-topo">
     <button class="folha-voltar" data-voltar aria-label="Voltar">←</button>
@@ -190,12 +215,22 @@
     <section class="cartao" style="margin-top:12px">
       <label class="troca"><span>Animar a porta ao dar um comando<br><small style="color:var(--txt-2)">Movimento estimado pelo tempo. Desligado: a porta só se mexe quando o fim de curso confirmar.</small></span><input type="checkbox" id="optAnimar"><i></i></label>
     </section>
+    <section class="cartao" id="blocoPessoas" style="margin-top:12px" hidden>
+      <h3 class="subtitulo" style="margin-top:0">Pessoas com acesso</h3>
+      <p class="dica" style="margin-top:0">Quem você cadastra entra no app com o e-mail e a senha que você definir e controla a porta. O nome dela aparece nos avisos e no histórico.</p>
+      <ul id="listaPessoas" class="pessoas"></ul>
+      <button id="btnNovaPessoa" class="primario">+ Adicionar pessoa</button>
+    </section>
     <section class="cartao" style="margin-top:12px">
       <p id="menuUsuario" class="dica" style="margin-top:0"></p>
       <label>Tempo para abrir (s) <input id="cfgAbrir" type="number" min="3" max="120" step="0.5"></label>
       <label>Tempo para fechar (s) <input id="cfgFechar" type="number" min="3" max="120" step="0.5"></label>
       <label>Duração do pulso (ms) <input id="cfgPulso" type="number" min="100" max="2000" step="50"></label>
       <p class="dica">Os tempos só afetam a animação. O pulso é enviado ao ESP32.</p>
+      <h3 class="subtitulo" style="margin:14px 0 4px">Minha senha</h3>
+      <label>Nova senha (mínimo 8 caracteres)<input id="minhaSenha" type="password" autocomplete="new-password" autocapitalize="off"></label>
+      <button class="secundario" id="btnMinhaSenha" type="button">Trocar minha senha</button>
+      <p id="minhaSenhaMsg" class="dica"></p>
       <div class="grupo-btn">
         <button class="secundario" id="cfgSalvar">Salvar</button>
         <button class="link" id="btnTrocarModo" type="button"></button>

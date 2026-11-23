@@ -1,6 +1,7 @@
 import { derivar, CFG_PADRAO, textoComando, horaCurta, proximaExecucao, rotuloDias, resumoSemana, horaRotulo, diaLocal, isoDow, NOMES_DIA, CURTO_DIA } from './logic.js';
 import { criarSimulacao } from './backend-sim.js';
 import { iniciarWifi } from './wifi-ui.js';
+import { iniciarPessoas } from './pessoas-ui.js';
 
 const $ = id => document.getElementById(id);
 const CONFIG = window.PORTA_CONFIG || {};
@@ -8,7 +9,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v12';
+export const VERSAO_APP = 'v13';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho
@@ -19,6 +20,7 @@ let timerPoll = null;
 let animarEstimado = (ler('animarEstimado') !== '0');   // preferência deste aparelho; padrão: animar
 let aguardandoPlaca = false;   // Wi-Fi acabou de ser configurado: espera a primeira resposta da placa
 let wifiCtl = null;
+let pessoasCtl = null;
 
 const agora = () => Date.now() + offsetRelogio;
 const NOMES = { abrir: 'abertura', parar: 'parada', fechar: 'fechamento' };
@@ -45,7 +47,7 @@ function abrirApp() {
   $('login').hidden = true; $('app').hidden = false;
   const sim = backend.modo === 'simulacao';
   $('faixaSim').hidden = !sim; $('blocoSim').hidden = !sim;
-  $('menuUsuario').textContent = (sim ? 'Modo simulação.' : `Conectado como ${backend.usuario().nome}.`) + ` Versão do app: ${VERSAO_APP}.`;
+  $('menuUsuario').textContent = (sim ? 'Modo simulação.' : `Conectado como ${backend.usuario().nome} (${backend.usuario().papel === 'admin' ? 'mestre' : 'operador'}).`) + ` Versão do app: ${VERSAO_APP}.`;
   $('btnTrocarModo').textContent = sim ? (nuvemConfigurada ? 'Usar a porta real' : '') : 'Ir para simulação';
   $('btnTrocarModo').hidden = sim && !nuvemConfigurada;
   $('btnSair').hidden = sim;
@@ -63,6 +65,7 @@ function abrirApp() {
     abrirFolha, fecharFolhas,
     aguardando: v => { aguardandoPlaca = v; },
   });
+  pessoasCtl = iniciarPessoas({ backend: () => backend, ehAdmin });
   poll();
 }
 
@@ -222,7 +225,8 @@ function desenharHistorico(evs) {
 function notificarLocal(e) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const txt = e.tipo === 'chegada_aberta' ? `A porta abriu completamente às ${horaCurta(e.em)}.` : `A porta fechou completamente às ${horaCurta(e.em)}.`;
-  new Notification('SIMULADO · Makro Boutique', { body: '(aviso simulado) ' + txt, tag: 'porta-sim-' + e.tipo });
+  const quem = e.origem === 'app' ? ` Comando de ${e.usuario}.` : e.origem === 'agenda' ? ' Agenda semanal.' : ' Acionamento externo.';
+  new Notification('SIMULADO · Makro Boutique', { body: '(aviso simulado) ' + txt + quem, tag: 'porta-sim-' + e.tipo });
 }
 async function atualizarBotaoPush() {
   const b = $('btnPush'), m = $('pushMsg');
@@ -453,7 +457,7 @@ $('btnAlertas').addEventListener('click', () => abrirFolha('folhaAlertas'));
 $('btnMenu').addEventListener('click', () => {
   const c = { ...CFG_PADRAO, ...(snap?.cfg || {}) };
   $('cfgAbrir').value = c.tempo_abrir_s; $('cfgFechar').value = c.tempo_fechar_s; $('cfgPulso').value = c.pulso_ms;
-  abrirFolha('folhaAjustes');
+  abrirFolha('folhaAjustes'); pessoasCtl?.atualizar();
 });
 $('btnWifi').addEventListener('click', () => wifiCtl.abrir());
 $('optAnimar').checked = animarEstimado;

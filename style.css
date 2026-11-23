@@ -230,3 +230,15 @@ label.linha { display: flex; gap: 10px; align-items: center; color: var(--txt); 
 .rede-nome { font-weight: 600; } .rede-info { color: #6d7882; font-size: .85rem; white-space: nowrap; }
 .girando { width: 52px; height: 52px; margin: 24px auto 8px; border-radius: 50%; border: 5px solid #e1e5e9; border-top-color: #343a40; animation: gira .9s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
+
+/* pessoas com acesso */
+.pessoas { list-style: none; margin: 10px 0 12px; padding: 0; display: grid; gap: 8px; }
+.pessoas li { background: var(--card-2); border-radius: 14px; padding: 12px 14px; }
+.pessoas .nome { font-weight: 700; font-size: 1.05rem; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pessoas .selo-papel { font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--grafite); color: #fff; }
+.pessoas .selo-papel.operador { background: var(--desab); color: var(--txt-2); }
+.pessoas .email { color: var(--txt-2); font-size: .88rem; word-break: break-all; }
+.pessoas .acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.pessoas .acoes .mini { padding: 6px 12px; min-height: 36px; font-size: .88rem; background: var(--card); }
+.pessoas .acoes .remover { color: var(--erro); }
+.tela-corpo input[type=text], .tela-corpo input[type=email], .tela-corpo input[type=password] { display: block; width: 100%; margin-top: 6px; padding: 14px; font-size: 1.05rem; border-radius: 12px; border: 1px solid var(--borda); background: var(--card); color: var(--txt); }

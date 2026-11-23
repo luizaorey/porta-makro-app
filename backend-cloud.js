@@ -71,6 +71,28 @@ export async function criarNuvem(cfg) {
       if (error) throw new Error(error.message);
     },
 
+    // --- pessoas com acesso (só o mestre; a criação do login roda na nuvem com a chave de administrador) ---
+    async _usuarios(body) {
+      const { data, error } = await sb.functions.invoke('usuarios', { body });
+      if (error) {
+        let msg = 'Não foi possível falar com a nuvem.';
+        try { const j = await error.context.json(); msg = j.mensagem || msg; } catch { /* mantém a mensagem padrão */ }
+        throw new Error(msg);
+      }
+      if (data?.erro) throw new Error(data.mensagem || 'Não foi possível concluir.');
+      return data;
+    },
+    async pessoas() { return (await this._usuarios({ acao: 'listar' })).pessoas; },
+    pessoaCriar(p) { return this._usuarios({ acao: 'criar', ...p }); },
+    pessoaRemover(id) { return this._usuarios({ acao: 'remover', user_id: id }); },
+    pessoaSenha(id, senha) { return this._usuarios({ acao: 'senha', user_id: id, senha }); },
+    pessoaPapel(id, papel) { return this._usuarios({ acao: 'papel', user_id: id, papel }); },
+    async trocarMinhaSenha(nova) {
+      if (nova.length < 8) throw new Error('A senha precisa ter pelo menos 8 caracteres.');
+      const { error } = await sb.auth.updateUser({ password: nova });
+      if (error) throw new Error('Não foi possível trocar a senha.');
+    },
+
     async pedirConfig() {
       const { data, error } = await sb.rpc('porta_pedir_config');
       if (error) throw new Error(error.message.includes('sem_comunicacao') ? 'sem_comunicacao' : error.message);
