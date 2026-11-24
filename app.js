@@ -9,7 +9,7 @@ const nuvemConfigurada = !!(CONFIG.supabaseUrl && CONFIG.anonKey);
 const salvar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
 const ler = k => { try { return localStorage.getItem(k); } catch { return null; } };
 
-export const VERSAO_APP = 'v14';
+export const VERSAO_APP = 'v15';
 let backend = null;
 let snap = null;            // último retorno do backend
 let offsetRelogio = 0;      // relógio do servidor - relógio do aparelho

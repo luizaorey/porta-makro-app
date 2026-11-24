@@ -1,5 +1,5 @@
 // Cache só do "casco" do app (funciona abrir offline) + recebe push com o app fechado.
-const V = 'porta-v14';
+const V = 'porta-v15';
 const CASCO = ['./', 'index.html', 'style.css', 'app.js', 'logic.js', 'server-model.js', 'backend-sim.js', 'backend-cloud.js', 'wifi-ui.js', 'pessoas-ui.js', 'config.js', 'manifest.webmanifest', 'icon-192.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(CASCO)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

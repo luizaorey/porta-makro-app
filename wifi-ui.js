@@ -69,7 +69,7 @@ export function iniciarWifi(ctx) {
       });
       li.append(el('br'), b, el('p', 'dica', 'Enquanto troca de rede, a placa fica sem falar com o app. Faça com a porta parada.'));
     } else if (m === 'trocar') {
-      passo(negrito('Ative o modo de configuração: **segure o botão CONFIG da placa por 5 segundos**, até o LED piscar rápido.'));
+      passo(negrito('Ligue a placa no lugar novo e espere **1 minuto**: se ela não achar a rede salva, a **Porta‑Config abre sozinha** (LED piscando rápido). Se tiver o botão CONFIG, **segure por 3 segundos** para abrir na hora.'));
     } else {
       passo(negrito('Ligue a placa. Se ela ainda não tem Wi‑Fi, a rede protegida **Porta‑Config** aparece sozinha em alguns segundos.'));
     }
